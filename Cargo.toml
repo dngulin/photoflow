@@ -1,0 +1,24 @@
+[package]
+name = "photoflow"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["wayland"]
+wayland = ["slint/backend-winit-wayland"]
+x11 = ["slint/backend-winit-x11"]
+
+[dependencies]
+anyhow = "1.0"
+chrono = "0.4"
+clap = { version = "4.5", features = ["derive"] }
+image = "0.25"
+nom-exif = "2.2"
+rayon = "1.10"
+rusqlite = "0.32"
+walkdir = "2.5"
+slint = { version = "1.8", default-features = false, features = ["renderer-femtovg", "compat-1-2"] }
+
+
+[build-dependencies]
+slint-build = "1.8"

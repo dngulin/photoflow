@@ -1,0 +1,204 @@
+export struct ViewModelItem {
+    index: int,
+    image: image,
+}
+
+component ViewPort inherits Rectangle {
+    width: 100%;
+    height: 100%;
+    clip: true;
+
+    in property <length> contents-w;
+    in property <length> contents-h;
+
+    in property <length> viewport-x;
+    in property <length> viewport-y;
+
+    Rectangle {
+        x: -root.viewport-x;
+        y: -root.viewport-y;
+        width: root.contents-w;
+        height: root.contents-h;
+        @children
+    }
+}
+
+component DynamicGrid inherits ViewPort {
+    // Visual config
+    in property <length> img-size: 235px;
+    in property <length> img-pad-size: 2px;
+
+    // Model setup
+    in property <int> item-count: 0;
+    in property <[ViewModelItem]> view-model;
+    pure callback set-view-model-range(int, int) -> bool;
+
+    // Hack to auto-synchronise view-model range
+    in property <bool> is-visible: true;
+    visible: visibility-hook(is-visible);
+
+    pure function visibility-hook(value: bool) -> bool {
+        if (value) {
+            set-view-model-range(range-start(), range-end());
+        }
+        value
+    }
+
+    // Item size
+    property <length> item-size: self.img-size + 2 * self.img-pad-size;
+
+    // Rows & cols
+    property <int> cols: max(1, min(self.item-count, floor(self.width / self.item-size)));
+    property <int> rows: ceil(self.item-count / self.cols);
+
+    // Contents
+    contents-w: self.width;
+    contents-h: item-size * rows;
+
+    animate viewport-y {
+         duration: 150ms;
+    }
+
+    // View Model Items & Selection Indicator
+    out property <int> selected-idx: 0;
+    changed selected-idx => { keep-selection-in-viewport(); }
+
+    Rectangle {
+        width: root.item-size * root.cols;
+        height: root.item-size * root.rows;
+        x: (root.width - self.width) * 0.5;
+
+        for item in root.view-model: Rectangle {
+            width: root.item-size;
+            height: root.item-size;
+            x: root.item-pos-x(item.index);
+            y: root.item-pos-y(item.index);
+            Image {
+                width: root.img-size;
+                height: root.img-size;
+                x: root.img-pad-size;
+                y: root.img-pad-size;
+                source: item.image;
+            }
+        }
+
+        Rectangle {
+            visible: root.item-count > 0;
+            width: root.item-size;
+            height: root.item-size;
+            x: root.item-pos-x(root.selected-idx);
+            y: root.item-pos-y(root.selected-idx);
+            border-width: root.img-pad-size;
+            border-color: white;
+        }
+    }
+
+    pure function item-col(index: int) -> int {
+        mod(index, cols)
+    }
+
+    pure function item-row(index: int) -> int {
+        floor(index / cols)
+    }
+
+    pure function item-pos-x(index: int) -> length {
+        item-col(index) * item-size
+    }
+
+    pure function item-pos-y(index: int) -> length {
+        item-row(index) * item-size
+    }
+
+    // Move selection API
+    public function mv-selection-right() {
+        if (selected-idx < item-count - 1 && item-col(selected-idx + 1) > item-col(selected-idx)) {
+            selected-idx += 1;
+        }
+    }
+
+    public function mv-selection-left() {
+        if (selected-idx > 0 && item-col(selected-idx - 1) < item-col(selected-idx)) {
+            selected-idx -= 1;
+        }
+    }
+
+    public function mv-selection-up() {
+        if (selected-idx - cols >= 0) {
+            selected-idx -= cols;
+        }
+    }
+
+    public function mv-selection-down() {
+        if (selected-idx + cols < item-count) {
+            selected-idx += cols;
+        }
+    }
+
+    // Viewport Scrolling
+    function keep-selection-in-viewport() {
+        if (viewport-start() > item-pos-y(selected-idx)) {
+            set-viewport-start(item-pos-y(selected-idx));
+        } else if (viewport-end() < item-pos-y(selected-idx) + item-size) {
+            set-viewport-end(item-pos-y(selected-idx) + item-size);
+        }
+    }
+
+    pure function viewport-start() -> length {
+        self.viewport-y
+    }
+
+    pure function viewport-end() -> length {
+        self.viewport-y + self.height
+    }
+
+    function set-viewport-start(pos: length) {
+        self.viewport-y = pos;
+    }
+
+    function set-viewport-end(pos: length) {
+        self.viewport-y = pos - self.height;
+    }
+
+    // View Model Range Reporting
+    pure function min-visible-row() -> int {
+        floor(viewport-start() / item-size);
+    }
+
+    pure function max-visible-row() -> int {
+        floor(viewport-end() / item-size);
+    }
+
+    pure function range-start() -> int {
+        min-visible-row() * self.cols
+    }
+
+    pure function range-end() -> int {
+        min(item-count - 1, (max-visible-row() + 1) * self.cols - 1)
+    }
+}
+
+export component PhotoFlowApp inherits Window {
+    background: black;
+    forward-focus: focus-scope;
+
+    in property <int> item-count <=> grid.item-count;
+    in property <[ViewModelItem]> view-model <=> grid.view-model;
+    pure callback set-view-model-range <=> grid.set-view-model-range;
+
+    grid := DynamicGrid { }
+
+    focus-scope := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.RightArrow) {
+                grid.mv-selection-right();
+            } else if (event.text == Key.LeftArrow) {
+                grid.mv-selection-left();
+            } else if (event.text == Key.UpArrow) {
+                grid.mv-selection-up();
+            } else if (event.text == Key.DownArrow) {
+                grid.mv-selection-down();
+            }
+            accept
+        }
+    }
+}
