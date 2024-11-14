@@ -55,13 +55,8 @@ component DynamicGrid inherits ViewPort {
     contents-w: self.width;
     contents-h: item-size * rows;
 
-    animate viewport-y {
-         duration: 150ms;
-    }
-
     // View Model Items & Selection Indicator
     out property <int> selected-idx: 0;
-    changed selected-idx => { keep-selection-in-viewport(); }
 
     Rectangle {
         width: root.item-size * root.cols;
@@ -125,17 +120,19 @@ component DynamicGrid inherits ViewPort {
     public function mv-selection-up() {
         if (selected-idx - cols >= 0) {
             selected-idx -= cols;
+            update-scrolling-spring();
         }
     }
 
     public function mv-selection-down() {
         if (selected-idx + cols < item-count) {
             selected-idx += cols;
+            update-scrolling-spring();
         }
     }
 
     // Viewport Scrolling
-    function keep-selection-in-viewport() {
+    function update-scrolling-spring() {
         if (viewport-start() > item-pos-y(selected-idx)) {
             set-viewport-start(item-pos-y(selected-idx));
         } else if (viewport-end() < item-pos-y(selected-idx) + item-size) {
@@ -152,11 +149,46 @@ component DynamicGrid inherits ViewPort {
     }
 
     function set-viewport-start(pos: length) {
-        self.viewport-y = pos;
+        spring.set-target(pos);
     }
 
     function set-viewport-end(pos: length) {
-        self.viewport-y = pos - self.height;
+        spring.set-target(pos - self.height);
+    }
+
+    spring := Timer {
+        interval: 1s / 60;
+        running: false;
+
+        in property <float> stiffness: 700;
+        in property <float> damping: 40;
+        in property <float> mass: 1;
+
+        property <length> tgt-value;
+
+        public function set-target(target: length) {
+            self.tgt-value = target;
+            self.running = true;
+        }
+
+        property <length> displacement: root.viewport-y - self.tgt-value;
+        property <float> stiffness-force: -displacement / 1px * stiffness;
+
+        property <float> velocity: 0;
+        property <float> damping-force: -velocity * damping;
+
+        property <float> dt: self.interval / 1s;
+
+        triggered => {
+            self.velocity += (self.stiffness-force + self.damping-force) / self.mass * dt;
+            root.viewport-y += self.velocity * dt * 1px;
+
+            if (displacement < 1phx && abs(self.velocity * dt) < 0.1) {
+                self.velocity = 0;
+                root.viewport-y = self.tgt-value;
+                self.running = false;
+            }
+        }
     }
 
     // View Model Range Reporting
