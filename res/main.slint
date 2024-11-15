@@ -178,7 +178,7 @@ component ImageGrid inherits VerticalScrollable {
     property <length> curr-item-start: item-pos-y(selected-idx);
     property <length> curr-item-end: self.curr-item-start + item-size;
 
-    property <length> extra-scroll: item-size * 0.3;
+    property <length> extra-scroll: item-size * 0.255;
 
     function update-scrolling-spring() {
         if (self.viewport-start > self.curr-item-start) {
