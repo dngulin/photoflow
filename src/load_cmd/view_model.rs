@@ -22,8 +22,8 @@ impl ViewModel {
         }
     }
 
-    pub fn set_range(&self, min: usize, max: usize) -> bool {
-        self.inner.borrow_mut().set_range(min, max, &self.notify)
+    pub fn set_range(&self, offset: usize, len: usize) -> bool {
+        self.inner.borrow_mut().set_range(offset, len, &self.notify)
     }
 }
 
@@ -70,7 +70,7 @@ struct ViewModelInner {
     decoding_buf: Vec<u8>,
 }
 
-#[derive(Default)]
+#[derive(Default, Eq, PartialEq)]
 struct Range {
     pub offset: usize,
     pub length: usize,
@@ -86,43 +86,49 @@ impl ViewModelInner {
         }
     }
 
-    pub fn set_range(&mut self, min: usize, max: usize, notify: &ModelNotify) -> bool {
-        let max = std::cmp::max(min, max);
+    pub fn set_range(&mut self, offset: usize, length: usize, notify: &ModelNotify) -> bool {
+        let new_range = Range { offset, length };
 
-        if self.range.is_empty() || self.range.min() != min || self.range.max() != max {
-            self.rebuild(min, max, notify);
+        if self.range != new_range {
+            self.rebuild(&new_range, notify);
             return true;
         }
 
         false
     }
 
-    fn rebuild(&mut self, min: usize, max: usize, notify: &ModelNotify) {
+    fn rebuild(&mut self, new_range: &Range, notify: &ModelNotify) {
+        if new_range.is_empty() {
+            self.clear(notify);
+            return;
+        }
+
         if self.range.is_empty() {
-            self.range.offset = min;
-            self.add_front(max - min + 1, notify);
+            self.range.offset = new_range.offset;
+            self.add_front(new_range.length, notify);
             return;
         }
 
         let (old_min, old_max) = (self.range.min(), self.range.max());
+        let (new_min, new_max) = (new_range.min(), new_range.max());
 
-        if old_max < min || old_min > max {
+        if old_max < new_min || old_min > new_max {
             self.clear(notify);
-            self.range.offset = min;
-            self.add_front(max - min + 1, notify);
+            self.range.offset = new_min;
+            self.add_front(new_range.length, notify);
             return;
         }
 
-        match old_max.cmp(&max) {
-            Ordering::Less => self.add_front(max - old_max, notify),
+        match old_max.cmp(&new_max) {
+            Ordering::Less => self.add_front(new_max - old_max, notify),
             Ordering::Equal => {}
-            Ordering::Greater => self.remove_front(old_max - max, notify),
+            Ordering::Greater => self.remove_front(old_max - new_max, notify),
         };
 
-        match old_min.cmp(&min) {
-            Ordering::Less => self.remove_back(min - old_min, notify),
+        match old_min.cmp(&new_min) {
+            Ordering::Less => self.remove_back(new_min - old_min, notify),
             Ordering::Equal => {}
-            Ordering::Greater => self.add_back(old_min - min, notify),
+            Ordering::Greater => self.add_back(old_min - new_min, notify),
         };
     }
 
