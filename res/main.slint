@@ -177,12 +177,21 @@ component ImageGrid inherits VerticalScrollable {
     property <length> curr-item-start: item-pos-y(selected-idx);
     property <length> curr-item-end: self.curr-item-start + item-size;
 
+    property <length> extra-scroll: item-size * 0.3;
+
     function update-scrolling-spring() {
         if (self.viewport-start > self.curr-item-start) {
-            self.set-spring-scroll-target(self.curr-item-start);
+            set-viewport-pos(self.curr-item-start - extra-scroll);
         } else if (self.viewport-end < self.curr-item-end) {
-            self.set-spring-scroll-target(curr-item-end - self.height);
+            set-viewport-pos(curr-item-end - self.height + extra-scroll);
         }
+    }
+
+    property <length> viewport-min: 0;
+    property <length> viewport-max: self.contents-h - self.height;
+
+    function set-viewport-pos(pos: length) {
+        self.set-spring-scroll-target(clamp(pos, viewport-min, viewport-max))
     }
 
     // Visible Range Reporting
