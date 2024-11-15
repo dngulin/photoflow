@@ -64,6 +64,7 @@ component VerticalScrollable inherits Rectangle {
 
 component ImageGrid inherits VerticalScrollable {
     // Visual config
+    in property <length> content-pad-size: 4px;
     in property <length> img-size: 235px;
     in property <length> img-pad-size: 2px;
 
@@ -187,8 +188,8 @@ component ImageGrid inherits VerticalScrollable {
         }
     }
 
-    property <length> viewport-min: 0;
-    property <length> viewport-max: self.contents-h - self.height;
+    property <length> viewport-min: 0 - content-pad-size;
+    property <length> viewport-max: self.contents-h - self.height + content-pad-size;
 
     function set-viewport-pos(pos: length) {
         self.set-spring-scroll-target(clamp(pos, viewport-min, viewport-max))
