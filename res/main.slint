@@ -3,7 +3,7 @@ export struct ViewModelItem {
     image: image,
 }
 
-component ViewPort inherits Rectangle {
+component VerticalScrollable inherits Rectangle {
     width: 100%;
     height: 100%;
     clip: true;
@@ -11,8 +11,17 @@ component ViewPort inherits Rectangle {
     in property <length> contents-w;
     in property <length> contents-h;
 
-    in property <length> viewport-x;
-    in property <length> viewport-y;
+    in-out property <length> viewport-x;
+    in-out property <length> viewport-y;
+
+    in property <float> spring-scroll-stiffness: 700;
+    in property <float> spring-scroll-damping: 40;
+    in property <float> spring-scroll-mass: 1;
+
+    public function set-spring-scroll-target(target: length) {
+        spring.tgt-value = target;
+        spring.running = true;
+    }
 
     Rectangle {
         x: -root.viewport-x;
@@ -21,9 +30,39 @@ component ViewPort inherits Rectangle {
         height: root.contents-h;
         @children
     }
+
+    spring := Timer {
+        interval: 1s / 60;
+        running: false;
+
+        in property <float> stiffness: root.spring-scroll-stiffness;
+        in property <float> damping: root.spring-scroll-damping;
+        in property <float> mass: root.spring-scroll-mass;
+
+        property <length> tgt-value;
+
+        property <length> displacement: root.viewport-y - self.tgt-value;
+        property <float> stiffness-force: -displacement / 1px * stiffness;
+
+        property <float> velocity: 0;
+        property <float> damping-force: -velocity * damping;
+
+        property <float> dt: self.interval / 1s;
+
+        triggered => {
+            self.velocity += (self.stiffness-force + self.damping-force) / self.mass * dt;
+            root.viewport-y += self.velocity * dt * 1px;
+
+            if (displacement < 1phx && abs(self.velocity * dt) < 0.1) {
+                self.velocity = 0;
+                root.viewport-y = self.tgt-value;
+                self.running = false;
+            }
+        }
+    }
 }
 
-component DynamicGrid inherits ViewPort {
+component ImageGrid inherits VerticalScrollable {
     // Visual config
     in property <length> img-size: 235px;
     in property <length> img-pad-size: 2px;
@@ -149,46 +188,11 @@ component DynamicGrid inherits ViewPort {
     }
 
     function set-viewport-start(pos: length) {
-        spring.set-target(pos);
+        self.set-spring-scroll-target(pos);
     }
 
     function set-viewport-end(pos: length) {
-        spring.set-target(pos - self.height);
-    }
-
-    spring := Timer {
-        interval: 1s / 60;
-        running: false;
-
-        in property <float> stiffness: 700;
-        in property <float> damping: 40;
-        in property <float> mass: 1;
-
-        property <length> tgt-value;
-
-        public function set-target(target: length) {
-            self.tgt-value = target;
-            self.running = true;
-        }
-
-        property <length> displacement: root.viewport-y - self.tgt-value;
-        property <float> stiffness-force: -displacement / 1px * stiffness;
-
-        property <float> velocity: 0;
-        property <float> damping-force: -velocity * damping;
-
-        property <float> dt: self.interval / 1s;
-
-        triggered => {
-            self.velocity += (self.stiffness-force + self.damping-force) / self.mass * dt;
-            root.viewport-y += self.velocity * dt * 1px;
-
-            if (displacement < 1phx && abs(self.velocity * dt) < 0.1) {
-                self.velocity = 0;
-                root.viewport-y = self.tgt-value;
-                self.running = false;
-            }
-        }
+        self.set-spring-scroll-target(pos - self.height);
     }
 
     // View Model Range Reporting
@@ -217,7 +221,7 @@ export component PhotoFlowApp inherits Window {
     in property <[ViewModelItem]> view-model <=> grid.view-model;
     pure callback set-view-model-range <=> grid.set-view-model-range;
 
-    grid := DynamicGrid { }
+    grid := ImageGrid { }
 
     focus-scope := FocusScope {
         key-pressed(event) => {
