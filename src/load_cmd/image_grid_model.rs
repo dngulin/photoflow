@@ -8,6 +8,7 @@ use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::Cursor;
+use std::rc::Rc;
 
 pub struct ImageGridModel {
     inner: RefCell<ViewModelInner>,
@@ -15,7 +16,7 @@ pub struct ImageGridModel {
 }
 
 impl ImageGridModel {
-    pub fn new(db: IndexDb) -> ImageGridModel {
+    pub fn new(db: Rc<IndexDb>) -> ImageGridModel {
         ImageGridModel {
             inner: RefCell::new(ViewModelInner::new(db)),
             notify: Default::default(),
@@ -63,7 +64,7 @@ impl Model for ImageGridModel {
 }
 
 struct ViewModelInner {
-    db: IndexDb,
+    db: Rc<IndexDb>,
     range: Range,
 
     image_buffers: HashMap<usize, SharedPixelBuffer<Rgb8Pixel>>,
@@ -77,7 +78,7 @@ struct Range {
 }
 
 impl ViewModelInner {
-    pub fn new(db: IndexDb) -> ViewModelInner {
+    pub fn new(db: Rc<IndexDb>) -> ViewModelInner {
         ViewModelInner {
             db,
             range: Default::default(),

@@ -56,6 +56,14 @@ impl IndexDb {
         )
     }
 
+    pub fn get_path(&self, index: usize) -> rusqlite::Result<String> {
+        self.conn.query_row(
+            "SELECT path FROM media WHERE rowid=(SELECT id FROM media_order WHERE rowid=?1)",
+            [index + 1],
+            |row| row.get(0),
+        )
+    }
+
     pub fn get_item_count(&self) -> rusqlite::Result<usize> {
         self.conn
             .query_row("SELECT COUNT(id) FROM media_order", (), |row| row.get(0))
