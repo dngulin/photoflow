@@ -1,5 +1,5 @@
 use crate::db::IndexDb;
-use crate::load_cmd::ViewModelItem;
+use crate::load_cmd::ImageGridItem;
 use image::codecs::jpeg::JpegDecoder;
 use image::ImageDecoder;
 use slint::{Image, Model, ModelNotify, ModelTracker, Rgb8Pixel, SharedPixelBuffer};
@@ -9,14 +9,14 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::Cursor;
 
-pub struct ViewModel {
+pub struct ImageGridModel {
     inner: RefCell<ViewModelInner>,
     notify: ModelNotify,
 }
 
-impl ViewModel {
-    pub fn new(db: IndexDb) -> ViewModel {
-        ViewModel {
+impl ImageGridModel {
+    pub fn new(db: IndexDb) -> ImageGridModel {
+        ImageGridModel {
             inner: RefCell::new(ViewModelInner::new(db)),
             notify: Default::default(),
         }
@@ -27,8 +27,8 @@ impl ViewModel {
     }
 }
 
-impl Model for ViewModel {
-    type Data = ViewModelItem;
+impl Model for ImageGridModel {
+    type Data = ImageGridItem;
 
     fn row_count(&self) -> usize {
         self.inner.borrow().range.length

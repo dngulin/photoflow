@@ -1,12 +1,12 @@
-import { ImageGrid, ViewModelItem } from "image-grid.slint";
+import { ImageGrid, ImageGridItem } from "image-grid.slint";
 
 export component PhotoFlowApp inherits Window {
     background: black;
     forward-focus: focus-scope;
 
     in property <int> item-count <=> grid.item-count;
-    in property <[ViewModelItem]> view-model <=> grid.view-model;
-    pure callback set-view-model-range <=> grid.set-view-model-range;
+    in property <[ImageGridItem]> grid-model <=> grid.model;
+    pure callback set-grid-visible-range <=> grid.set-visible-range;
 
     grid := ImageGrid { }
 

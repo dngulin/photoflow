@@ -1,7 +1,8 @@
-mod view_model;
+mod image_grid_model;
 
 use crate::db::IndexDb;
-use crate::load_cmd::view_model::ViewModel;
+use image_grid_model::ImageGridModel;
+
 use std::path::Path;
 use std::rc::Rc;
 
@@ -14,10 +15,10 @@ pub fn execute<P: AsRef<Path>>(db_path: P) -> anyhow::Result<()> {
     let app = PhotoFlowApp::new()?;
     app.window().set_fullscreen(true);
 
-    let view_model = Rc::new(ViewModel::new(db));
-    app.set_view_model(view_model.clone().into());
-    app.on_set_view_model_range(move |offset, len| {
-        view_model.set_range(offset as usize, len as usize)
+    let image_grid_model = Rc::new(ImageGridModel::new(db));
+    app.set_grid_model(image_grid_model.clone().into());
+    app.on_set_grid_visible_range(move |offset, len| {
+        image_grid_model.set_range(offset as usize, len as usize)
     });
 
     app.set_item_count(item_count as i32);

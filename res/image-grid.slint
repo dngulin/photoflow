@@ -1,6 +1,6 @@
 import { VerticalScrollable } from "vertical-scrollable.slint";
 
-export struct ViewModelItem {
+export struct ImageGridItem {
     index: int,
     image: image,
 }
@@ -13,8 +13,8 @@ export component ImageGrid inherits VerticalScrollable {
 
     // Model setup
     in property <int> item-count: 0;
-    in property <[ViewModelItem]> view-model;
-    pure callback set-view-model-range(int, int) -> bool;
+    in property <[ImageGridItem]> model;
+    pure callback set-visible-range(int, int) -> bool;
 
     // Hack to auto-synchronise view-model range
     in property <bool> is-visible: true;
@@ -22,7 +22,7 @@ export component ImageGrid inherits VerticalScrollable {
 
     pure function visibility-hook(value: bool) -> bool {
         if (value) {
-            set-view-model-range(model-offset, model-length);
+            set-visible-range(model-offset, model-length);
         }
         value
     }
@@ -38,7 +38,7 @@ export component ImageGrid inherits VerticalScrollable {
     contents-w: self.width;
     contents-h: item-size * rows;
 
-    // View Model Items & Selection Indicator
+    // Model Items & Selection Indicator
     out property <int> selected-idx: 0;
 
     Rectangle {
@@ -46,7 +46,7 @@ export component ImageGrid inherits VerticalScrollable {
         height: root.item-size * root.rows;
         x: (root.width - self.width) * 0.5;
 
-        for item in root.view-model: Rectangle {
+        for item in root.model: Rectangle {
             width: root.item-size;
             height: root.item-size;
             x: root.item-pos-x(item.index);
