@@ -41,13 +41,14 @@ export component ImageGrid inherits VerticalScrollable {
     // Model Items & Selection Indicator
     out property <int> selected-idx: 0;
 
-    public function set-selected-idx(idx: int) {
+    public function set-selected-idx(idx: int, prev-pos: length) {
         selected-idx = idx;
         if (selected-idx == 0) {
             self.set-viewport-pos(self.viewport-min, true);
         } else if (selected-idx == item-count - 1) {
             self.set-viewport-pos(self.viewport-max, true);
         } else {
+            self.set-viewport-pos(prev-pos, true);
             self.update-viewport-pos(true);
         }
     }

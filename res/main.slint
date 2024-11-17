@@ -21,6 +21,7 @@ export component PhotoFlowApp inherits Window {
 
     in property <[ImageGridItem]> grid-model;
     pure callback set-grid-visible-range(int, int);
+    property <length> prev-viewport-pos;
 
     callback close();
 
@@ -33,7 +34,7 @@ export component PhotoFlowApp inherits Window {
         }
 
         init => {
-            self.set-selected-idx(root.selected-idx);
+            self.set-selected-idx(root.selected-idx, root.prev-viewport-pos);
             grid-focus-scope.focus();
         }
 
@@ -49,6 +50,7 @@ export component PhotoFlowApp inherits Window {
                     parent.mv-selection-down();
                 } else if (event.text == Key.Return) {
                     parent.set-visible-range(0, 0);
+                    root.prev-viewport-pos = parent.viewport-y;
                     root.selected-idx = parent.selected-idx;
                     root.mode = Mode.Viewer;
                 } else if (event.text == Key.Escape) {
