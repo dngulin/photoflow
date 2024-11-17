@@ -23,6 +23,13 @@ pub fn execute<P: AsRef<Path>>(db_path: P) -> anyhow::Result<()> {
 
     app.set_item_count(item_count as i32);
 
+    let weak_app = app.as_weak();
+    app.on_close(move || {
+        if let Some(app) = weak_app.upgrade() {
+            let _ = app.window().hide();
+        }
+    });
+
     app.run()?;
 
     Ok(())

@@ -22,6 +22,8 @@ export component PhotoFlowApp inherits Window {
     in property <[ImageGridItem]> grid-model;
     pure callback set-grid-visible-range(int, int);
 
+    callback close();
+
     if mode == Mode.Gallery: ImageGrid {
         item-count: root.item-count;
         model: root.grid-model;
@@ -49,6 +51,8 @@ export component PhotoFlowApp inherits Window {
                     parent.set-visible-range(0, 0);
                     root.selected-idx = parent.selected-idx;
                     root.mode = Mode.Viewer;
+                } else if (event.text == Key.Escape) {
+                    root.close();
                 }
                 accept
             }
