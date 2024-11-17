@@ -1,27 +1,85 @@
 import { ImageGrid, ImageGridItem } from "image-grid.slint";
 
+export global MediaSource {
+    pure callback set-index(int);
+    pure callback clear();
+    in property <image> image;
+}
+
+export enum Mode {
+    Gallery,
+    Viewer
+}
+
 export component PhotoFlowApp inherits Window {
     background: black;
-    forward-focus: focus-scope;
 
-    in property <int> item-count <=> grid.item-count;
-    in property <[ImageGridItem]> grid-model <=> grid.model;
-    pure callback set-grid-visible-range <=> grid.set-visible-range;
+    in-out property <Mode> mode: Gallery;
 
-    grid := ImageGrid { }
+    in property <int> item-count;
+    property <int> selected-idx;
 
-    focus-scope := FocusScope {
-        key-pressed(event) => {
-            if (event.text == Key.RightArrow) {
-                grid.mv-selection-right();
-            } else if (event.text == Key.LeftArrow) {
-                grid.mv-selection-left();
-            } else if (event.text == Key.UpArrow) {
-                grid.mv-selection-up();
-            } else if (event.text == Key.DownArrow) {
-                grid.mv-selection-down();
+    in property <[ImageGridItem]> grid-model;
+    pure callback set-grid-visible-range(int, int);
+
+    if mode == Mode.Gallery: ImageGrid {
+        item-count: root.item-count;
+        model: root.grid-model;
+
+        set-visible-range(offset, length) => {
+            root.set-grid-visible-range(offset, length)
+        }
+
+        init => {
+            self.set-selected-idx(root.selected-idx);
+            grid-focus-scope.focus();
+        }
+
+        grid-focus-scope := FocusScope {
+            key-pressed(event) => {
+                if (event.text == Key.RightArrow) {
+                    parent.mv-selection-right();
+                } else if (event.text == Key.LeftArrow) {
+                    parent.mv-selection-left();
+                } else if (event.text == Key.UpArrow) {
+                    parent.mv-selection-up();
+                } else if (event.text == Key.DownArrow) {
+                    parent.mv-selection-down();
+                } else if (event.text == Key.Return) {
+                    parent.set-visible-range(0, 0);
+                    root.selected-idx = parent.selected-idx;
+                    root.mode = Mode.Viewer;
+                }
+                accept
             }
-            accept
+        }
+    }
+
+    if mode == Mode.Viewer: Image {
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+        source: MediaSource.image;
+
+        init => {
+            MediaSource.set-index(root.selected-idx);
+            img-focus-scope.focus();
+        }
+
+        img-focus-scope := FocusScope {
+            key-pressed(event) => {
+                if (event.text == Key.RightArrow) {
+                    root.selected-idx = clamp(root.selected-idx + 1, 0, max(0, root.item-count - 1));
+                    MediaSource.set-index(root.selected-idx);
+                } else if (event.text == Key.LeftArrow) {
+                    MediaSource.set-index(root.selected-idx);
+                    root.selected-idx = clamp(root.selected-idx - 1, 0, max(0, root.item-count - 1));
+                } else if (event.text == Key.Escape) {
+                    MediaSource.clear();
+                    root.mode = Mode.Gallery;
+                }
+                accept
+            }
         }
     }
 }

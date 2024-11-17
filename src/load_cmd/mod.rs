@@ -18,7 +18,7 @@ pub fn execute<P: AsRef<Path>>(db_path: P) -> anyhow::Result<()> {
     let image_grid_model = Rc::new(ImageGridModel::new(db));
     app.set_grid_model(image_grid_model.clone().into());
     app.on_set_grid_visible_range(move |offset, len| {
-        image_grid_model.set_range(offset as usize, len as usize)
+        image_grid_model.set_range(offset as usize, len as usize);
     });
 
     app.set_item_count(item_count as i32);

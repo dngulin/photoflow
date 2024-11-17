@@ -14,7 +14,7 @@ export component ImageGrid inherits VerticalScrollable {
     // Model setup
     in property <int> item-count: 0;
     in property <[ImageGridItem]> model;
-    pure callback set-visible-range(int, int) -> bool;
+    pure callback set-visible-range(int, int);
 
     // Hack to auto-synchronise view-model range
     in property <bool> is-visible: true;
@@ -40,6 +40,17 @@ export component ImageGrid inherits VerticalScrollable {
 
     // Model Items & Selection Indicator
     out property <int> selected-idx: 0;
+
+    public function set-selected-idx(idx: int) {
+        selected-idx = idx;
+        if (selected-idx == 0) {
+            self.set-viewport-pos(self.viewport-min, true);
+        } else if (selected-idx == item-count - 1) {
+            self.set-viewport-pos(self.viewport-max, true);
+        } else {
+            self.update-viewport-pos(true);
+        }
+    }
 
     Rectangle {
         width: root.item-size * root.cols;
@@ -103,14 +114,14 @@ export component ImageGrid inherits VerticalScrollable {
     public function mv-selection-up() {
         if (selected-idx - cols >= 0) {
             selected-idx -= cols;
-            update-scrolling-spring();
+            update-viewport-pos(false);
         }
     }
 
     public function mv-selection-down() {
         if (selected-idx + cols < item-count) {
             selected-idx += cols;
-            update-scrolling-spring();
+            update-viewport-pos(false);
         }
     }
 
@@ -123,19 +134,23 @@ export component ImageGrid inherits VerticalScrollable {
 
     property <length> extra-scroll: item-size * 0.255;
 
-    function update-scrolling-spring() {
+    function update-viewport-pos(instant: bool) {
         if (self.viewport-start > self.curr-item-start) {
-            set-viewport-pos(self.curr-item-start - extra-scroll);
+            set-viewport-pos(self.curr-item-start - extra-scroll, instant);
         } else if (self.viewport-end < self.curr-item-end) {
-            set-viewport-pos(curr-item-end - self.height + extra-scroll);
+            set-viewport-pos(curr-item-end - self.height + extra-scroll, instant);
         }
     }
 
     property <length> viewport-min: 0 - content-pad-size;
     property <length> viewport-max: self.contents-h - self.height + content-pad-size;
 
-    function set-viewport-pos(pos: length) {
-        self.set-spring-scroll-target(clamp(pos, viewport-min, viewport-max))
+    function set-viewport-pos(pos: length, instant: bool) {
+        if (instant) {
+            self.viewport-y = clamp(pos, viewport-min, viewport-max);
+        } else {
+            self.set-spring-scroll-target(clamp(pos, viewport-min, viewport-max));
+        }
     }
 
     // Visible Range Reporting

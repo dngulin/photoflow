@@ -22,7 +22,7 @@ impl ImageGridModel {
         }
     }
 
-    pub fn set_range(&self, offset: usize, len: usize) -> bool {
+    pub fn set_range(&self, offset: usize, len: usize) {
         self.inner.borrow_mut().set_range(offset, len, &self.notify)
     }
 }
@@ -86,15 +86,12 @@ impl ViewModelInner {
         }
     }
 
-    pub fn set_range(&mut self, offset: usize, length: usize, notify: &ModelNotify) -> bool {
+    pub fn set_range(&mut self, offset: usize, length: usize, notify: &ModelNotify) {
         let new_range = Range { offset, length };
 
         if self.range != new_range {
             self.rebuild(&new_range, notify);
-            return true;
         }
-
-        false
     }
 
     fn rebuild(&mut self, new_range: &Range, notify: &ModelNotify) {
