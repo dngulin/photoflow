@@ -1,9 +1,9 @@
 import { ImageGrid, ImageGridItem } from "image-grid.slint";
+import { MediaViewer, MediaViewerModel } from "media-viewer.slint";
 
-export global MediaSource {
-    pure callback set-index(int);
-    pure callback clear();
-    in property <image> image;
+export global MediaViewerBridge {
+    in property <MediaViewerModel> model;
+    pure callback load(int);
 }
 
 export enum Mode {
@@ -62,27 +62,30 @@ export component PhotoFlowApp inherits Window {
         }
     }
 
-    if mode == Mode.Viewer: Image {
+    if mode == Mode.Viewer: MediaViewer {
         width: 100%;
         height: 100%;
-        image-fit: contain;
-        source: MediaSource.image;
+
+        model: MediaViewerBridge.model;
 
         init => {
-            MediaSource.set-index(root.selected-idx);
+            MediaViewerBridge.load(root.selected-idx);
             img-focus-scope.focus();
         }
 
         img-focus-scope := FocusScope {
             key-pressed(event) => {
                 if (event.text == Key.RightArrow) {
-                    root.selected-idx = clamp(root.selected-idx + 1, 0, root.max-selected-idx);
-                    MediaSource.set-index(root.selected-idx);
+                    if (!parent.model.is-loading) {
+                        root.selected-idx = clamp(root.selected-idx + 1, 0, root.max-selected-idx);
+                        MediaViewerBridge.load(root.selected-idx);
+                    }
                 } else if (event.text == Key.LeftArrow) {
-                    root.selected-idx = clamp(root.selected-idx - 1, 0, root.max-selected-idx);
-                    MediaSource.set-index(root.selected-idx);
+                    if (!parent.model.is-loading) {
+                        root.selected-idx = clamp(root.selected-idx - 1, 0, root.max-selected-idx);
+                        MediaViewerBridge.load(root.selected-idx);
+                    }
                 } else if (event.text == Key.Escape) {
-                    MediaSource.clear();
                     root.mode = Mode.Gallery;
                 }
                 accept

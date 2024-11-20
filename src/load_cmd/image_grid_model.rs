@@ -1,5 +1,6 @@
 use crate::db::IndexDb;
 use crate::load_cmd::ImageGridItem;
+use anyhow::anyhow;
 use image::codecs::jpeg::JpegDecoder;
 use image::ImageDecoder;
 use slint::{Image, Model, ModelNotify, ModelTracker, Rgb8Pixel, SharedPixelBuffer};
@@ -8,7 +9,7 @@ use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::Cursor;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 pub struct ImageGridModel {
     inner: RefCell<ViewModelInner>,
@@ -16,7 +17,7 @@ pub struct ImageGridModel {
 }
 
 impl ImageGridModel {
-    pub fn new(db: Rc<IndexDb>) -> ImageGridModel {
+    pub fn new(db: Arc<Mutex<IndexDb>>) -> ImageGridModel {
         ImageGridModel {
             inner: RefCell::new(ViewModelInner::new(db)),
             notify: Default::default(),
@@ -64,7 +65,7 @@ impl Model for ImageGridModel {
 }
 
 struct ViewModelInner {
-    db: Rc<IndexDb>,
+    db: Arc<Mutex<IndexDb>>,
     range: Range,
 
     image_buffers: HashMap<usize, SharedPixelBuffer<Rgb8Pixel>>,
@@ -78,7 +79,7 @@ struct Range {
 }
 
 impl ViewModelInner {
-    pub fn new(db: Rc<IndexDb>) -> ViewModelInner {
+    pub fn new(db: Arc<Mutex<IndexDb>>) -> ViewModelInner {
         ViewModelInner {
             db,
             range: Default::default(),
@@ -197,7 +198,10 @@ impl ViewModelInner {
     }
 
     fn get_thumbnail(&mut self, db_idx: usize) -> anyhow::Result<SharedPixelBuffer<Rgb8Pixel>> {
-        let encoded = self.db.get_thumbnail(db_idx)?;
+        let encoded = {
+            let db = self.db.lock().map_err(|_| anyhow!("Failed to lock DB"))?;
+            db.get_thumbnail(db_idx)?
+        };
 
         let decoder = JpegDecoder::new(Cursor::new(encoded))?;
         let (w, h) = decoder.dimensions();

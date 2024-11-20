@@ -1,0 +1,46 @@
+export struct MediaViewerModel {
+    is-loading: bool,
+    file-name: string,
+    image: image,
+}
+
+export component MediaViewer inherits Rectangle {
+    width: 100%;
+    height: 100%;
+    clip: true;
+
+    in property <MediaViewerModel> model;
+    in property <length> line-height: 24px;
+
+    property <image> spinner-img: @image-url("img/spinner.svg");
+
+    Image {
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+        source: model.image;
+    }
+
+    if root.model.is-loading: VerticalLayout {
+        alignment: end;
+        HorizontalLayout {
+            alignment: end;
+            spacing: 2px;
+
+            Image {
+                source: root.spinner-img;
+                rotation-angle: 360deg * mod(animation-tick(), 2s) / 2s;
+                height: root.line-height;
+            }
+
+            Text {
+                font-family: "Ubuntu";
+                font-size: root.line-height * 0.6;
+                text: model.file-name;
+                color: white;
+                vertical-alignment: center;
+                horizontal-alignment: left;
+            }
+        }
+    }
+}
