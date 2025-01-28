@@ -1,0 +1,73 @@
+export component CircularProgressBar {
+    preferred-height: 100%;
+    preferred-width: 100%;
+    in property <int> value;
+    in property <int> maximum;
+
+    private property <float> progress: value / maximum;
+
+    Path {
+        stroke-width: 15px;
+        stroke: white;
+
+        // An Arc is not drawn when it starts and ends in the same point,
+        // so we split the circle into two halves
+        private property <angle> phi_a: clamp(progress * 1turn, 0turn, 0.5turn);
+        private property <angle> phi_b: clamp(progress * 1turn, 0.5turn, 1turn);
+
+        private property <angle> offset: 90deg;
+        private property <float> r: 0.5;
+
+        viewbox-width: 1;
+        viewbox-height: 1;
+        width: 100%;
+        height: 100%;
+
+        MoveTo {
+            x: r * cos(offset) + 0.5;
+            y: r * sin(offset) + 0.5;
+        }
+
+        ArcTo {
+            radius-x: r;
+            radius-y: r;
+            x: r * cos(phi_a + offset) + 0.5;
+            y: r * sin(phi_a + offset) + 0.5;
+            sweep: true;
+        }
+
+        MoveTo {
+            x: r * cos(180deg + offset) + 0.5;
+            y: r * sin(180deg + offset) + 0.5;
+        }
+
+        ArcTo {
+            radius-x: r;
+            radius-y: r;
+            x: r * cos(phi_b + offset) + 0.5;
+            y: r * sin(phi_b + offset) + 0.5;
+            sweep: true;
+        }
+    }
+
+    HorizontalLayout {
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            Text {
+                horizontal-alignment: center;
+                font-size: root.height / 5;
+                font-weight: 700;
+                color: white;
+                text: round(progress * 100) + "%";
+            }
+
+            Text {
+                horizontal-alignment: center;
+                font-size: root.height / 10;
+                color: white;
+                text: value + " / " + maximum;
+            }
+        }
+    }
+}

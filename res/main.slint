@@ -1,5 +1,6 @@
 import { ImageGrid, ImageGridItem } from "image-grid.slint";
 import { MediaViewer, MediaViewerModel } from "media-viewer.slint";
+import { CircularProgressBar } from "circular-progress-bar.slint";
 
 export global MediaViewerBridge {
     in property <MediaViewerModel> model;
@@ -7,6 +8,7 @@ export global MediaViewerBridge {
 }
 
 export enum Mode {
+    Loading,
     Gallery,
     Viewer
 }
@@ -14,7 +16,7 @@ export enum Mode {
 export component PhotoFlowApp inherits Window {
     background: black;
 
-    in-out property <Mode> mode: Gallery;
+    in-out property <Mode> mode: Loading;
 
     in property <int> item-count;
     property <int> selected-idx;
@@ -25,6 +27,15 @@ export component PhotoFlowApp inherits Window {
     property <length> prev-viewport-pos;
 
     callback close();
+
+    if mode == Mode.Loading: VerticalLayout {
+        alignment: center;
+        CircularProgressBar {
+            height: parent.height / 3;
+            value: 10;
+            maximum: 42;
+        }
+    }
 
     if mode == Mode.Gallery: ImageGrid {
         item-count: root.item-count;
