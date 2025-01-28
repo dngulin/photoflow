@@ -11,7 +11,6 @@ x11 = ["slint/backend-winit-x11"]
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4"
-clap = { version = "4.5", features = ["derive"] }
 image = "0.25"
 nom-exif = "2.2"
 rayon = "1.10"
