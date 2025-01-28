@@ -1,5 +1,5 @@
 use crate::db::IndexDb;
-use crate::viewer::ImageGridItem;
+use crate::ImageGridItem;
 use anyhow::anyhow;
 use image::codecs::jpeg::JpegDecoder;
 use image::ImageDecoder;

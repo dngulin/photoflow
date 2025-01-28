@@ -5,14 +5,13 @@ use image_grid_model::ImageGridModel;
 use std::fs::File;
 use std::io::BufReader;
 
+use crate::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp};
 use image::codecs::jpeg::JpegDecoder;
 use image::ImageDecoder;
-use slint::{Image, Rgb8Pixel, SharedPixelBuffer, Weak};
+use slint::{ComponentHandle, Image, Rgb8Pixel, SharedPixelBuffer, Weak};
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-
-slint::include_modules!();
 
 pub fn execute<P: AsRef<Path>>(db_path: P) -> anyhow::Result<()> {
     let db = IndexDb::open(&db_path)?;
