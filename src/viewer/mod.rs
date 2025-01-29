@@ -1,14 +1,15 @@
 mod image_grid_model;
 
-use crate::db::IndexDb;
-use image_grid_model::ImageGridModel;
-use std::fs::File;
-use std::io::BufReader;
+use self::image_grid_model::ImageGridModel;
 
-use crate::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp};
+use crate::db::IndexDb;
+use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp};
+
 use image::codecs::jpeg::JpegDecoder;
 use image::ImageDecoder;
 use slint::{ComponentHandle, Image, Rgb8Pixel, SharedPixelBuffer, Weak};
+use std::fs::File;
+use std::io::BufReader;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};

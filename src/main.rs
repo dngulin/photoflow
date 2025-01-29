@@ -1,4 +1,7 @@
 use crate::db::IndexDb;
+use crate::ui::{Mode, PhotoFlowApp};
+
+use slint::ComponentHandle;
 use std::sync::{Arc, Mutex};
 
 mod db;
@@ -6,7 +9,9 @@ mod exif_orientation;
 mod indexer;
 mod viewer;
 
-slint::include_modules!();
+pub mod ui {
+    slint::include_modules!();
+}
 
 fn main() -> anyhow::Result<()> {
     let app = PhotoFlowApp::new()?;
@@ -16,7 +21,7 @@ fn main() -> anyhow::Result<()> {
     let db = Arc::new(Mutex::new(db));
 
     app.set_mode(Mode::Loading);
-    indexer::update_index(db.clone(), &app, move |app: &PhotoFlowApp| {
+    indexer::update_index(&app, db.clone(), move |app: &PhotoFlowApp| {
         viewer::bind_models(app, db);
         app.set_mode(Mode::Gallery);
     })?;
