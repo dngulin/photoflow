@@ -18,6 +18,10 @@ export component PhotoFlowApp inherits Window {
 
     in-out property <Mode> mode: Loading;
 
+    in property <int> indexing-processed;
+    in property <int> indexing-total;
+    in property <string> indexing-error;
+
     in property <int> item-count;
     property <int> selected-idx;
     property <int> max-selected-idx: max(0, item-count - 1);
@@ -30,10 +34,18 @@ export component PhotoFlowApp inherits Window {
 
     if mode == Mode.Loading: VerticalLayout {
         alignment: center;
-        CircularProgressBar {
+        if indexing-total == 0: Image {
+            source: @image-url("img/spinner.svg");
+            rotation-angle: 360deg * mod(animation-tick(), 2s) / 2s;
+            height: parent.height / 5;
+        }
+        if indexing-total > 0: CircularProgressBar {
             height: parent.height / 3;
-            value: 10;
-            maximum: 42;
+            value: indexing-processed;
+            maximum: indexing-total;
+        }
+        if indexing-error != "": Text {
+            text: "Error:" + indexing-error;
         }
     }
 

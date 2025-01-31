@@ -14,16 +14,31 @@ impl IndexDb {
         Ok(client)
     }
 
-    pub fn create_index(&self) -> rusqlite::Result<()> {
+    pub fn create_index_if_not_exist(&self) -> rusqlite::Result<()> {
         self.conn
             .execute(
-                "CREATE TABLE media (
+                "CREATE TABLE IF NOT EXIST media (
+                    id TEXT UNIQUE,
                     path TEXT UNIQUE,
                     timestamp INTEGER,
+                    orientation INTEGER,
+                    is_valid INTEGER,
                     thumbnail BLOB
                 )",
                 (),
             )
+            .map(|_| ())
+    }
+
+    pub fn invalidate_index(&self) -> rusqlite::Result<()> {
+        self.conn
+            .execute("UPDATE media SET is_valid = 0", ())
+            .map(|_| ())
+    }
+
+    pub fn cleanup_index(&self) -> rusqlite::Result<()> {
+        self.conn
+            .execute("DELETE FROM media WHERE is_valid = 0", ())
             .map(|_| ())
     }
 
@@ -39,11 +54,20 @@ impl IndexDb {
             .map(|_| ())
     }
 
-    pub fn insert_entry(&self, entry: &InsertionEntry) -> rusqlite::Result<()> {
+    pub fn set_valid_with_path_if_exists(&self, id: &str, path: &str) -> rusqlite::Result<bool> {
         self.conn
             .execute(
-                "INSERT INTO media (path, timestamp, thumbnail) VALUES (?1, ?2, ?3)",
-                (entry.path, entry.timestamp, entry.thumbnail),
+                "UPDATE media SET (path, is_valid) = (?2, 1) WHERE id = ?1",
+                (id, path),
+            )
+            .map(|count| count == 1)
+    }
+
+    pub fn insert_entry(&self, e: &InsertionEntry) -> rusqlite::Result<()> {
+        self.conn
+            .execute(
+                "INSERT INTO media (id, path, timestamp, orientation, is_valid, thumbnail) VALUES (?1, ?2, ?3, ?4, 1, ?5)",
+                (e.id, e.path, e.timestamp, e.orientation, e.thumbnail),
             )
             .map(|_| ())
     }
@@ -71,7 +95,9 @@ impl IndexDb {
 }
 
 pub struct InsertionEntry<'a> {
+    pub id: &'a str,
     pub path: &'a str,
     pub timestamp: i64,
+    pub orientation: u16,
     pub thumbnail: &'a [u8],
 }

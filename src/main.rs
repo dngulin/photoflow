@@ -1,9 +1,8 @@
+use crate::config::Config;
 use crate::db::IndexDb;
 use crate::ui::{Mode, PhotoFlowApp};
-use std::fs;
-
-use crate::config::Config;
 use slint::ComponentHandle;
+use std::fs;
 use std::sync::{Arc, Mutex};
 
 mod config;
@@ -24,24 +23,20 @@ fn main() -> anyhow::Result<()> {
     let config = fs::read_to_string(&config_path)?;
     let config = toml::from_str::<Config>(&config)?;
 
-    let app = PhotoFlowApp::new()?;
-    setup_app_window(&app);
-
     let db = IndexDb::open(config.db_path)?;
     let db = Arc::new(Mutex::new(db));
 
+    let app = PhotoFlowApp::new()?;
+    setup_app_window(&app);
+
     app.set_mode(Mode::Loading);
-    indexer::update_index(
-        &app,
-        db.clone(),
-        &config.sources,
-        move |app: &PhotoFlowApp| {
-            viewer::bind_models(app, db);
-            app.set_mode(Mode::Gallery);
-        },
-    )?;
+    indexer::update_index_bg(config.sources, db.clone(), app.as_weak(), move |app| {
+        //viewer::bind_models(app, db);
+        app.set_mode(Mode::Gallery);
+    });
 
     app.run()?;
+
     Ok(())
 }
 

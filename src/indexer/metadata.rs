@@ -30,7 +30,7 @@ pub fn parse_exif_metadata<P: AsRef<Path>>(
         datetime: exif.get(ExifTag::CreateDate).and_then(|e| e.as_time()),
         orientation: exif
             .get(ExifTag::Orientation)
-            .and_then(|e| e.as_u16())
+            .and_then(|v| v.as_u16())
             .unwrap_or_default()
             .try_into()
             .unwrap_or_default(),

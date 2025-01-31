@@ -1,5 +1,6 @@
 use image::{imageops, DynamicImage};
 
+#[derive(Clone, Copy)]
 pub enum ExifOrientation {
     Unchanged,
     MirroredHorizontally,
@@ -31,6 +32,21 @@ impl TryFrom<u16> for ExifOrientation {
             7 => Ok(Self::Rotated90AndMirroredVertically),
             8 => Ok(Self::Rotated270),
             _ => Err(()),
+        }
+    }
+}
+
+impl From<ExifOrientation> for u16 {
+    fn from(value: ExifOrientation) -> Self {
+        match value {
+            ExifOrientation::Unchanged => 1,
+            ExifOrientation::MirroredHorizontally => 2,
+            ExifOrientation::Rotated180 => 3,
+            ExifOrientation::MirroredVertically => 4,
+            ExifOrientation::Rotated90AndMirroredHorizontally => 5,
+            ExifOrientation::Rotated90 => 6,
+            ExifOrientation::Rotated90AndMirroredVertically => 7,
+            ExifOrientation::Rotated270 => 8,
         }
     }
 }
