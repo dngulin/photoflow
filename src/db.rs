@@ -19,7 +19,7 @@ impl IndexDb {
             .execute(
                 "CREATE TABLE IF NOT EXISTS media (
                     id TEXT UNIQUE,
-                    path TEXT UNIQUE,
+                    path TEXT,
                     timestamp INTEGER,
                     orientation INTEGER,
                     is_valid INTEGER,
