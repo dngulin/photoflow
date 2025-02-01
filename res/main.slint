@@ -45,7 +45,10 @@ export component PhotoFlowApp inherits Window {
             maximum: indexing-total;
         }
         if indexing-error != "": Text {
-            text: "Error:" + indexing-error;
+            text: "Error: " + indexing-error;
+            horizontal-alignment: center;
+            font-size: parent.height / 40;
+            color: white;
         }
     }
 
