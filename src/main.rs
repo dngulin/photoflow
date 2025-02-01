@@ -31,7 +31,7 @@ fn main() -> anyhow::Result<()> {
 
     app.set_mode(Mode::Loading);
     indexer::update_index_bg(config.sources, db.clone(), app.as_weak(), move |app| {
-        //viewer::bind_models(app, db);
+        let _ = viewer::bind_models(&app, db);
         app.set_mode(Mode::Gallery);
     });
 

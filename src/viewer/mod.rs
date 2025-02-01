@@ -5,6 +5,7 @@ use self::image_grid_model::ImageGridModel;
 use crate::db::IndexDb;
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp};
 
+use anyhow::anyhow;
 use image::codecs::jpeg::JpegDecoder;
 use image::ImageDecoder;
 use slint::{ComponentHandle, Image, Rgb8Pixel, SharedPixelBuffer, Weak};
@@ -14,21 +15,18 @@ use std::path::Path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-pub fn execute<P: AsRef<Path>>(db_path: P) -> anyhow::Result<()> {
-    let db = IndexDb::open(&db_path)?;
-    let item_count = db.get_item_count()?;
-    let db = Arc::new(Mutex::new(db));
-
-    let app = PhotoFlowApp::new()?;
-    app.window().set_fullscreen(true);
+pub fn bind_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyhow::Result<()> {
+    {
+        let db = db.lock().map_err(|_| anyhow!("Failed to lock IndexDB"))?;
+        let item_count = db.get_item_count()?;
+        app.set_item_count(item_count as i32);
+    }
 
     let image_grid_model = Rc::new(ImageGridModel::new(db.clone()));
     app.set_grid_model(image_grid_model.clone().into());
     app.on_set_grid_visible_range(move |offset, len| {
         image_grid_model.set_range(offset as usize, len as usize);
     });
-
-    app.set_item_count(item_count as i32);
 
     let weak_app = app.as_weak();
     app.on_close(move || {
@@ -37,9 +35,7 @@ pub fn execute<P: AsRef<Path>>(db_path: P) -> anyhow::Result<()> {
         }
     });
 
-    bind_media_loader(&app, db.clone());
-
-    app.run()?;
+    bind_media_loader(app, db.clone());
 
     Ok(())
 }
