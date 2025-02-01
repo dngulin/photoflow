@@ -35,7 +35,7 @@ fn update_index(
 ) -> anyhow::Result<()> {
     {
         let db = db.lock().map_err(|_| anyhow!("Failed to lock IndexDB"))?;
-        db.create_index_if_not_exist()?;
+        db.create_index_if_not_exists()?;
         db.invalidate_index()?;
     }
 

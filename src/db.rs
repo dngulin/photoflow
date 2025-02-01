@@ -14,10 +14,10 @@ impl IndexDb {
         Ok(client)
     }
 
-    pub fn create_index_if_not_exist(&self) -> rusqlite::Result<()> {
+    pub fn create_index_if_not_exists(&self) -> rusqlite::Result<()> {
         self.conn
             .execute(
-                "CREATE TABLE IF NOT EXIST media (
+                "CREATE TABLE IF NOT EXISTS media (
                     id TEXT UNIQUE,
                     path TEXT UNIQUE,
                     timestamp INTEGER,
