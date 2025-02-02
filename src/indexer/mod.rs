@@ -5,9 +5,12 @@ mod thumbnail;
 use crate::db::{IndexDb, InsertionEntry};
 use crate::ui::PhotoFlowApp;
 use anyhow::anyhow;
+use chrono::{DateTime, Utc};
 use nom_exif::MediaParser;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use slint::Weak;
+use std::collections::HashSet;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use walkdir::{DirEntry, WalkDir};
@@ -39,7 +42,7 @@ fn update_index(
         db.invalidate_index()?;
     }
 
-    let mut paths = Vec::new();
+    let mut paths = HashSet::new();
     for source in sources {
         collect_paths(source, &mut paths);
     }
@@ -62,29 +65,46 @@ fn update_index(
     Ok(())
 }
 
-fn collect_paths<P: AsRef<Path>>(source: P, target: &mut Vec<PathBuf>) {
+fn collect_paths<P: AsRef<Path>>(source: P, target: &mut HashSet<PathBuf>) {
     let it = WalkDir::new(source)
         .into_iter()
         .filter_map(|r| r.ok())
-        .filter(is_jpeg)
+        .filter(is_not_hidden)
+        .filter(is_extension_supported)
         .map(|e| e.path().to_path_buf());
     target.extend(it);
 }
 
-fn is_jpeg(entry: &DirEntry) -> bool {
+fn is_not_hidden(entry: &DirEntry) -> bool {
     entry
         .path()
-        .extension()
-        .map(|ext| ext.eq_ignore_ascii_case("jpg"))
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(|name_str| !name_str.starts_with("."))
         .unwrap_or(false)
 }
 
-fn index_parallel(db: &Mutex<IndexDb>, paths: &[PathBuf], weak_app: Weak<PhotoFlowApp>) {
+fn is_extension_supported(entry: &DirEntry) -> bool {
+    let supported = ["jpg", "jpeg"];
+    entry
+        .path()
+        .extension()
+        .map(move |ext| supported.iter().any(move |s| ext.eq_ignore_ascii_case(s)))
+        .unwrap_or(false)
+}
+
+fn index_parallel(db: &Mutex<IndexDb>, paths: &HashSet<PathBuf>, weak_app: Weak<PhotoFlowApp>) {
     let media_parser = Mutex::new(MediaParser::new());
     let weak_app = Mutex::new(weak_app);
 
     paths.par_iter().for_each(move |path| {
-        let _ = index_file(path, db, &media_parser);
+        if let Err(e) = index_file(path, db, &media_parser) {
+            println!(
+                "Failed to index `{}`: {}",
+                path.to_str().unwrap_or_default(),
+                e
+            );
+        }
 
         {
             let weak_app = weak_app.lock().unwrap();
@@ -105,18 +125,19 @@ fn index_file<P: AsRef<Path>>(
         .to_str()
         .ok_or_else(|| anyhow!("Non-unicode path"))?;
 
-    let hash = filehash::calculate(&path)?;
+    let file_meta = fs::metadata(&path)?;
+    let finfo = get_finfo_str(&file_meta)?;
 
     {
         let db = db.lock().map_err(|_| anyhow!("Failed to lock IndexDB"))?;
-        if db.set_valid_with_path_if_exists(&hash, path_str)? {
+        if db.set_valid_if_unchanged(path_str, &finfo)? {
             return Ok(());
         }
     }
 
     let metadata = metadata::parse_exif_metadata(&path, mp)?;
     let datetime = match metadata.datetime {
-        None => metadata::get_fs_datetime(&path)?,
+        None => metadata::get_fs_datetime(&file_meta)?,
         Some(value) => value,
     };
 
@@ -124,8 +145,8 @@ fn index_file<P: AsRef<Path>>(
     let thumbnail = thumbnail::get_squared_jpeg(&image, 470, metadata.orientation)?;
 
     let entry = InsertionEntry {
-        id: &hash,
         path: path_str,
+        finfo: &finfo,
         timestamp: datetime.timestamp(),
         orientation: metadata.orientation.into(),
         thumbnail: &thumbnail,
@@ -133,8 +154,14 @@ fn index_file<P: AsRef<Path>>(
 
     {
         let db = db.lock().map_err(|_| anyhow!("Failed to lock IndexDB"))?;
-        db.insert_entry(&entry)?;
+        db.upsert_entry(&entry)?;
     }
 
     Ok(())
+}
+
+fn get_finfo_str(m: &fs::Metadata) -> anyhow::Result<String> {
+    let modified: DateTime<Utc> = m.modified()?.into();
+    let formatted = format!("{:x}:{:x}", m.len(), modified.timestamp());
+    Ok(formatted)
 }

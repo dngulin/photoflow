@@ -21,8 +21,8 @@ impl IndexDb {
         self.conn
             .execute(
                 "CREATE TABLE IF NOT EXISTS media (
-                    id TEXT UNIQUE,
-                    path TEXT,
+                    path TEXT PRIMARY KEY,
+                    finfo TEXT, -- file size and mtime (used for changes detection)
                     timestamp INTEGER,
                     orientation INTEGER,
                     is_valid INTEGER,
@@ -57,20 +57,29 @@ impl IndexDb {
             .map(|_| ())
     }
 
-    pub fn set_valid_with_path_if_exists(&self, id: &str, path: &str) -> rusqlite::Result<bool> {
+    pub fn set_valid_if_unchanged(&self, path: &str, finfo: &str) -> rusqlite::Result<bool> {
         self.conn
             .execute(
-                "UPDATE media SET (path, is_valid) = (?2, 1) WHERE id = ?1",
-                (id, path),
+                "UPDATE media SET is_valid = 1 WHERE path = ?1 AND finfo = ?2",
+                (path, finfo),
             )
             .map(|count| count == 1)
     }
 
-    pub fn insert_entry(&self, e: &InsertionEntry) -> rusqlite::Result<()> {
+    pub fn upsert_entry(&self, e: &InsertionEntry) -> rusqlite::Result<()> {
         self.conn
             .execute(
-                "INSERT INTO media (id, path, timestamp, orientation, is_valid, thumbnail) VALUES (?1, ?2, ?3, ?4, 1, ?5)",
-                (e.id, e.path, e.timestamp, e.orientation, e.thumbnail),
+                "INSERT INTO media
+                    (path, finfo, timestamp, orientation, is_valid, thumbnail)
+                VALUES
+                    (?1, ?2, ?3, ?4, 1, ?5)
+                ON CONFLICT(path) DO UPDATE SET
+                    finfo = excluded.finfo,
+                    timestamp = excluded.timestamp,
+                    orientation = excluded.orientation,
+                    is_valid = excluded.is_valid,
+                    thumbnail = excluded.thumbnail",
+                (e.path, e.finfo, e.timestamp, e.orientation, e.thumbnail),
             )
             .map(|_| ())
     }
@@ -98,8 +107,8 @@ impl IndexDb {
 }
 
 pub struct InsertionEntry<'a> {
-    pub id: &'a str,
     pub path: &'a str,
+    pub finfo: &'a str,
     pub timestamp: i64,
     pub orientation: u16,
     pub thumbnail: &'a [u8],

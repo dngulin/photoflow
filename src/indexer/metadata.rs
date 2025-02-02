@@ -39,9 +39,7 @@ pub fn parse_exif_metadata<P: AsRef<Path>>(
     Ok(metadata)
 }
 
-pub fn get_fs_datetime<P: AsRef<Path>>(path: P) -> anyhow::Result<DateTime<FixedOffset>> {
-    let metadata = fs::metadata(&path)?;
-
+pub fn get_fs_datetime(metadata: &fs::Metadata) -> anyhow::Result<DateTime<FixedOffset>> {
     let created = metadata.created()?;
 
     if let Ok(modified) = metadata.modified() {
