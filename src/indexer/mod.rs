@@ -1,4 +1,3 @@
-mod filehash;
 mod metadata;
 mod thumbnail;
 
