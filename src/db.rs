@@ -11,6 +11,9 @@ impl IndexDb {
             conn: Connection::open(path)?,
         };
 
+        client.conn.pragma_update(None, "synchronous", "OFF")?;
+        client.conn.pragma_update(None, "journal_mode", "OFF")?;
+
         Ok(client)
     }
 
