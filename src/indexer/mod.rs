@@ -135,7 +135,7 @@ fn index_file<P: AsRef<Path>>(
         }
     }
 
-    let metadata = metadata::parse_exif_metadata(&path, mp)?;
+    let metadata = metadata::parse_exif_metadata(&path, mp).unwrap_or_default();
     let datetime = match metadata.datetime {
         None => metadata::get_fs_datetime(&file_meta)?,
         Some(value) => value,

@@ -6,6 +6,7 @@ use std::fs;
 use std::path::Path;
 use std::sync::Mutex;
 
+#[derive(Default)]
 pub struct ExifMetadata {
     pub datetime: Option<DateTime<FixedOffset>>,
     pub orientation: ExifOrientation,
