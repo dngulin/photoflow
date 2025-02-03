@@ -34,18 +34,14 @@ export component PhotoFlowApp inherits Window {
 
     if mode == Mode.Loading: VerticalLayout {
         alignment: center;
-        if indexing-total == 0: Image {
-            source: @image-url("img/spinner.svg");
-            rotation-angle: 360deg * mod(animation-tick(), 2s) / 2s;
-            height: parent.height / 5;
-        }
-        if indexing-total > 0: CircularProgressBar {
+        CircularProgressBar {
             height: parent.height / 3;
             value: indexing-processed;
             maximum: indexing-total;
         }
-        if indexing-error != "": Text {
-            text: "Error: " + indexing-error;
+
+        Text {
+            text: indexing-error;
             horizontal-alignment: center;
             font-size: parent.height / 40;
             color: white;

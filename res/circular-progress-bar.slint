@@ -4,7 +4,7 @@ export component CircularProgressBar {
     in property <int> value;
     in property <int> maximum;
 
-    private property <float> progress: value / maximum;
+    private property <float> progress: maximum == 0 ? 0 : value / maximum;
 
     Path {
         stroke-width: 15px;
