@@ -8,7 +8,7 @@ use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp};
 use anyhow::anyhow;
 use image::codecs::jpeg::JpegDecoder;
 use image::ImageDecoder;
-use slint::{ComponentHandle, Image, Rgb8Pixel, SharedPixelBuffer, Weak};
+use slint::{ComponentHandle, Image, Rgb8Pixel, SharedPixelBuffer, SharedString, Weak};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -68,17 +68,34 @@ impl MediaLoader {
 fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
     let bridge = app.global::<MediaViewerBridge>();
     let loader = MediaLoader::new(db);
-    let weak_app = app.as_weak();
 
-    bridge.on_load(move |idx| {
-        let _ = on_load_impl(weak_app.clone(), &loader, idx as usize);
-    })
+    {
+        let weak_app = app.as_weak();
+        let loader = loader.clone();
+        bridge.on_load(move |idx| {
+            let _ = load(weak_app.clone(), &loader, idx as usize);
+        });
+    }
+
+    {
+        let weak_app = app.as_weak();
+        let loader = loader.clone();
+        bridge.on_clear(move || {
+            let _ = clear(weak_app.clone(), &loader);
+        });
+    }
 }
 
-fn on_load_impl(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Option<()> {
-    let app = weak_app.upgrade()?;
+fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Option<()> {
+    if loader.requested_idx.lock().ok()?.replace(idx) == Some(idx) {
+        return None;
+    }
 
-    let path = get_loading_path(loader, idx)?;
+    let app = weak_app.upgrade()?;
+    let path = {
+        let db = loader.db.lock().ok()?;
+        db.get_path(idx).ok()?
+    };
     let file_name = Path::new(&path).file_name()?.to_str()?;
 
     let bridge = app.global::<MediaViewerBridge>();
@@ -92,29 +109,27 @@ fn on_load_impl(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) 
     let weak_app = weak_app.clone();
     let loader = loader.clone();
     rayon::spawn_fifo(move || {
-        let _ = loading_impl(weak_app, &loader, idx, path);
+        if let Some(buffer) = decode_image(&loader, idx, path) {
+            let _ = weak_app.upgrade_in_event_loop(move |app| {
+                let mut requested = loader.requested_idx.lock().unwrap();
+                if *requested != Some(idx) {
+                    return;
+                }
+                *requested = None;
+
+                set_image_to_model(&app, buffer);
+            });
+        }
     });
 
     Some(())
 }
 
-fn get_loading_path(loader: &MediaLoader, idx: usize) -> Option<String> {
-    {
-        let mut target = loader.requested_idx.lock().ok()?;
-        if target.replace(idx) == Some(idx) {
-            return None;
-        }
-    }
-
-    loader.db.lock().ok()?.get_path(idx).ok()
-}
-
-fn loading_impl(
-    weak_app: Weak<PhotoFlowApp>,
+fn decode_image(
     loader: &MediaLoader,
     idx: usize,
     path: String,
-) -> Option<()> {
+) -> Option<SharedPixelBuffer<Rgb8Pixel>> {
     loader.ensure_requested(idx)?;
     let file = File::open(&path).ok()?;
 
@@ -129,30 +144,10 @@ fn loading_impl(
     loader.ensure_requested(idx)?;
     decoder.read_image(&mut out).ok()?;
 
-    loader.ensure_requested(idx)?;
-    let buf = SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(&out, w, h);
-
-    let loader = loader.clone();
-    weak_app
-        .upgrade_in_event_loop(move |app| {
-            finish_loading_impl(&app, &loader, idx, buf);
-        })
-        .ok()
+    Some(SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(&out, w, h))
 }
 
-fn finish_loading_impl(
-    app: &PhotoFlowApp,
-    loader: &MediaLoader,
-    idx: usize,
-    buffer: SharedPixelBuffer<Rgb8Pixel>,
-) {
-    {
-        let requested = loader.requested_idx.lock().unwrap();
-        if !requested.eq(&Some(idx)) {
-            return;
-        }
-    }
-
+fn set_image_to_model(app: &PhotoFlowApp, buffer: SharedPixelBuffer<Rgb8Pixel>) {
     let bridge = app.global::<MediaViewerBridge>();
     let model = bridge.get_model();
     bridge.set_model(MediaViewerModel {
@@ -160,4 +155,18 @@ fn finish_loading_impl(
         file_name: model.file_name,
         image: Image::from_rgb8(buffer),
     });
+}
+
+fn clear(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader) -> Option<()> {
+    *loader.requested_idx.lock().ok()? = None;
+
+    let app = weak_app.upgrade()?;
+    let bridge = app.global::<MediaViewerBridge>();
+    bridge.set_model(MediaViewerModel {
+        is_loading: false,
+        file_name: SharedString::default(),
+        image: Image::default(),
+    });
+
+    Some(())
 }
