@@ -2,6 +2,8 @@ mod metadata;
 mod thumbnail;
 
 use crate::db::{IndexDb, InsertionEntry};
+use crate::exif_orientation::ExifOrientation;
+use crate::img_decoder;
 use crate::ui::PhotoFlowApp;
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
@@ -69,7 +71,7 @@ fn collect_paths<P: AsRef<Path>>(source: P, target: &mut HashSet<PathBuf>) {
         .into_iter()
         .filter_map(|r| r.ok())
         .filter(is_not_hidden)
-        .filter(is_extension_supported)
+        .filter(|e| img_decoder::is_extension_supported(e.path()))
         .map(|e| e.path().to_path_buf());
     target.extend(it);
 }
@@ -80,15 +82,6 @@ fn is_not_hidden(entry: &DirEntry) -> bool {
         .file_name()
         .and_then(|name| name.to_str())
         .map(|name_str| !name_str.starts_with("."))
-        .unwrap_or(false)
-}
-
-fn is_extension_supported(entry: &DirEntry) -> bool {
-    let supported = ["jpg", "jpeg"];
-    entry
-        .path()
-        .extension()
-        .map(move |ext| supported.iter().any(move |s| ext.eq_ignore_ascii_case(s)))
         .unwrap_or(false)
 }
 
@@ -140,7 +133,7 @@ fn index_file<P: AsRef<Path>>(
         Some(value) => value,
     };
 
-    let image = image::open(&path)?;
+    let image = img_decoder::open(path.as_ref(), ExifOrientation::Unchanged)?;
     let thumbnail = thumbnail::get_squared_jpeg(&image, 470, metadata.orientation)?;
 
     let entry = InsertionEntry {

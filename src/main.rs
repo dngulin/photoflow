@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 mod config;
 mod db;
 mod exif_orientation;
+mod img_decoder;
 mod indexer;
 mod viewer;
 

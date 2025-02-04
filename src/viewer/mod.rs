@@ -3,15 +3,12 @@ mod image_grid_model;
 use self::image_grid_model::ImageGridModel;
 
 use crate::db::IndexDb;
+use crate::exif_orientation::ExifOrientation;
+use crate::img_decoder;
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp};
-
 use anyhow::anyhow;
-use image::codecs::jpeg::JpegDecoder;
-use image::ImageDecoder;
 use slint::{ComponentHandle, Image, Rgb8Pixel, SharedPixelBuffer, SharedString, Weak};
-use std::fs::File;
-use std::io::BufReader;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
@@ -131,20 +128,14 @@ fn decode_image(
     path: String,
 ) -> Option<SharedPixelBuffer<Rgb8Pixel>> {
     loader.ensure_requested(idx)?;
-    let file = File::open(&path).ok()?;
+    let image = img_decoder::open(&PathBuf::from(path), ExifOrientation::Unchanged).ok()?;
+    let rgb = image.into_rgb8();
 
-    loader.ensure_requested(idx)?;
-    let decoder = JpegDecoder::new(BufReader::new(file)).ok()?;
-    let (w, h) = decoder.dimensions();
-    let required_len = decoder.total_bytes() as usize;
-
-    loader.ensure_requested(idx)?;
-    let mut out: Vec<u8> = vec![0; required_len];
-
-    loader.ensure_requested(idx)?;
-    decoder.read_image(&mut out).ok()?;
-
-    Some(SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(&out, w, h))
+    Some(SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(
+        rgb.as_raw(),
+        rgb.width(),
+        rgb.height(),
+    ))
 }
 
 fn set_image_to_model(app: &PhotoFlowApp, buffer: SharedPixelBuffer<Rgb8Pixel>) {
