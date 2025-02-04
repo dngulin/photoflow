@@ -106,17 +106,18 @@ fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Optio
     let weak_app = weak_app.clone();
     let loader = loader.clone();
     rayon::spawn_fifo(move || {
-        if let Some(buffer) = decode_image(&loader, idx, path) {
-            let _ = weak_app.upgrade_in_event_loop(move |app| {
-                let mut requested = loader.requested_idx.lock().unwrap();
-                if *requested != Some(idx) {
-                    return;
-                }
-                *requested = None;
+        let buffer = decode_image(&loader, idx, path)
+            .unwrap_or_else(|| SharedPixelBuffer::<Rgb8Pixel>::new(0, 0));
 
-                set_image_to_model(&app, buffer);
-            });
-        }
+        let _ = weak_app.upgrade_in_event_loop(move |app| {
+            let mut requested = loader.requested_idx.lock().unwrap();
+            if *requested != Some(idx) {
+                return;
+            }
+            *requested = None;
+
+            set_image_to_model(&app, buffer);
+        });
     });
 
     Some(())
