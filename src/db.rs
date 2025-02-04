@@ -92,11 +92,11 @@ impl IndexDb {
         )
     }
 
-    pub fn get_path(&self, index: usize) -> rusqlite::Result<String> {
+    pub fn get_path_and_orientation(&self, index: usize) -> rusqlite::Result<(String, u16)> {
         self.conn.query_row(
-            "SELECT path FROM media WHERE rowid=(SELECT id FROM media_order WHERE rowid=?1)",
+            "SELECT path, orientation FROM media WHERE rowid=(SELECT id FROM media_order WHERE rowid=?1)",
             [index + 1],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
     }
 

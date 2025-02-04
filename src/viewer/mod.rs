@@ -8,7 +8,7 @@ use crate::img_decoder;
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp};
 use anyhow::anyhow;
 use slint::{ComponentHandle, Image, Rgb8Pixel, SharedPixelBuffer, SharedString, Weak};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
@@ -89,10 +89,11 @@ fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Optio
     }
 
     let app = weak_app.upgrade()?;
-    let path = {
+    let (path, orientation) = {
         let db = loader.db.lock().ok()?;
-        db.get_path(idx).ok()?
+        db.get_path_and_orientation(idx).ok()?
     };
+    let orientation: ExifOrientation = orientation.try_into().unwrap_or_default();
     let file_name = Path::new(&path).file_name()?.to_str()?;
 
     let bridge = app.global::<MediaViewerBridge>();
@@ -106,7 +107,7 @@ fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Optio
     let weak_app = weak_app.clone();
     let loader = loader.clone();
     rayon::spawn_fifo(move || {
-        let buffer = decode_image(&loader, idx, path)
+        let buffer = load_image(&loader, idx, path, orientation)
             .unwrap_or_else(|| SharedPixelBuffer::<Rgb8Pixel>::new(0, 0));
 
         let _ = weak_app.upgrade_in_event_loop(move |app| {
@@ -123,13 +124,14 @@ fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Optio
     Some(())
 }
 
-fn decode_image(
+fn load_image(
     loader: &MediaLoader,
     idx: usize,
     path: String,
+    orientation: ExifOrientation,
 ) -> Option<SharedPixelBuffer<Rgb8Pixel>> {
     loader.ensure_requested(idx)?;
-    let image = img_decoder::open(&PathBuf::from(path), ExifOrientation::Unchanged).ok()?;
+    let image = img_decoder::open(Path::new(&path), orientation).ok()?;
     let rgb = image.into_rgb8();
 
     Some(SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(
