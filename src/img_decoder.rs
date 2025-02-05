@@ -1,6 +1,6 @@
 use crate::exif_orientation::ExifOrientation;
 use image::DynamicImage;
-use libheif_rs::{ColorSpace, DecodingOptions, HeifContext, LibHeif, RgbChroma};
+use libheif_rs::{ColorSpace, HeifContext, LibHeif, RgbChroma};
 use std::path::Path;
 
 pub fn is_extension_supported(path: &Path) -> bool {
@@ -17,11 +17,6 @@ fn has_heic_extension(path: &Path) -> bool {
 }
 
 pub fn open(path: &Path, orientation: ExifOrientation) -> anyhow::Result<DynamicImage> {
-    let image = decode(path)?;
-    Ok(orientation.apply(image))
-}
-
-fn decode(path: &Path) -> anyhow::Result<DynamicImage> {
     if !is_extension_supported(path) {
         anyhow::bail!("Unsupported image format")
     }
@@ -31,7 +26,7 @@ fn decode(path: &Path) -> anyhow::Result<DynamicImage> {
     }
 
     let image = image::open(path)?;
-    Ok(image)
+    Ok(orientation.apply(image))
 }
 
 fn decode_heic(path: &Path) -> anyhow::Result<DynamicImage> {
@@ -39,11 +34,7 @@ fn decode_heic(path: &Path) -> anyhow::Result<DynamicImage> {
     let handle = read_ctx.primary_image_handle()?;
 
     let lib_heif = LibHeif::new();
-    let mut options = DecodingOptions::new()
-        .ok_or_else(|| anyhow::anyhow!("Failed to allocate HEIF decoding options"))?;
-    options.set_ignore_transformations(true);
-
-    let heif_image = lib_heif.decode(&handle, ColorSpace::Rgb(RgbChroma::Rgb), Some(options))?;
+    let heif_image = lib_heif.decode(&handle, ColorSpace::Rgb(RgbChroma::Rgb), None)?;
 
     let interleaved = heif_image
         .planes()

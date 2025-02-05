@@ -2,7 +2,6 @@ mod metadata;
 mod thumbnail;
 
 use crate::db::{IndexDb, InsertionEntry};
-use crate::exif_orientation::ExifOrientation;
 use crate::img_decoder;
 use crate::ui::PhotoFlowApp;
 use anyhow::anyhow;
@@ -133,8 +132,8 @@ fn index_file<P: AsRef<Path>>(
         Some(value) => value,
     };
 
-    let image = img_decoder::open(path.as_ref(), ExifOrientation::Unchanged)?;
-    let thumbnail = thumbnail::get_squared_jpeg(&image, 470, metadata.orientation)?;
+    let image = img_decoder::open(path.as_ref(), metadata.orientation)?;
+    let thumbnail = thumbnail::get_squared_jpeg(&image, 470)?;
 
     let entry = InsertionEntry {
         path: path_str,
