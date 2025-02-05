@@ -23,7 +23,7 @@ export component PhotoFlowApp inherits Window {
     in property <int> indexing-total;
     in property <string> indexing-error;
 
-    in property <int> item-count;
+    property <int> item-count;
     property <int> selected-idx;
     property <int> max-selected-idx: max(0, item-count - 1);
 
@@ -115,5 +115,10 @@ export component PhotoFlowApp inherits Window {
                 accept
             }
         }
+    }
+
+    public function set-item-count(count: int) {
+        self.item-count = count;
+        self.selected-idx = max(count - 1, 0);
     }
 }

@@ -16,7 +16,7 @@ pub fn bind_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyhow::Resul
     {
         let db = db.lock().map_err(|_| anyhow!("Failed to lock IndexDB"))?;
         let item_count = db.get_item_count()?;
-        app.set_item_count(item_count as i32);
+        app.invoke_set_item_count(item_count as i32);
     }
 
     let image_grid_model = Rc::new(ImageGridModel::new(db.clone()));
