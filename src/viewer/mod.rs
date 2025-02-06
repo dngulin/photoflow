@@ -84,7 +84,9 @@ fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
 }
 
 fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Option<()> {
-    if loader.requested_idx.lock().ok()?.replace(idx) == Some(idx) {
+    let mut requested_idx = loader.requested_idx.lock().ok()?;
+
+    if *requested_idx == Some(idx) {
         return None;
     }
 
@@ -106,6 +108,8 @@ fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Optio
 
     let weak_app = weak_app.clone();
     let loader = loader.clone();
+
+    *requested_idx = Some(idx);
     rayon::spawn_fifo(move || {
         let buffer = load_image(&loader, idx, path, orientation)
             .unwrap_or_else(|| SharedPixelBuffer::<Rgb8Pixel>::new(0, 0));
