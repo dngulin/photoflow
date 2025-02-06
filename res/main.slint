@@ -33,6 +33,7 @@ export component PhotoFlowApp inherits Window {
     property <length> prev-viewport-pos;
 
     callback close();
+    callback tick();
 
     if mode == Mode.PreIndexing: VerticalLayout {
         alignment: center;
@@ -136,5 +137,13 @@ export component PhotoFlowApp inherits Window {
     public function set-item-count(count: int) {
         self.item-count = count;
         self.selected-idx = max(count - 1, 0);
+    }
+
+    Timer {
+        interval: 16ms;
+        running: true;
+        triggered => {
+            root.tick();
+        }
     }
 }

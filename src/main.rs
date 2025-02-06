@@ -3,10 +3,9 @@ use crate::db::IndexDb;
 use crate::gamepad_input::GamepadInputListener;
 use crate::ui::{Mode, PhotoFlowApp};
 use crate::winit::WinitWindow;
-use slint::{ComponentHandle, Timer, TimerMode};
+use slint::ComponentHandle;
 use std::fs;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
 mod config;
 mod db;
@@ -34,7 +33,7 @@ fn main() -> anyhow::Result<()> {
 
     let app = PhotoFlowApp::new()?;
     setup_app_window(&app);
-    let _ = setup_gamepad_input(&app);
+    setup_gamepad_input(&app);
 
     app.set_mode(Mode::PreIndexing);
     indexer::update_index_bg(
@@ -69,17 +68,13 @@ fn setup_app_window(app: &PhotoFlowApp) {
     });
 }
 
-fn setup_gamepad_input(app: &PhotoFlowApp) -> Timer {
+fn setup_gamepad_input(app: &PhotoFlowApp) {
     let mut gamepad_manager = GamepadInputListener::new().unwrap();
-
     let app_weak = app.as_weak();
-    let gamepad_poll_timer = Timer::default();
 
-    gamepad_poll_timer.start(TimerMode::Repeated, Duration::from_millis(16), move || {
+    app.on_tick(move || {
         if let Some(app) = app_weak.upgrade() {
             gamepad_manager.poll(app.window());
         }
     });
-
-    gamepad_poll_timer
 }
