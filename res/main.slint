@@ -9,7 +9,8 @@ export global MediaViewerBridge {
 }
 
 export enum Mode {
-    Loading,
+    PreIndexing,
+    Indexing,
     Gallery,
     Viewer
 }
@@ -17,7 +18,7 @@ export enum Mode {
 export component PhotoFlowApp inherits Window {
     background: black;
 
-    in-out property <Mode> mode: Loading;
+    in-out property <Mode> mode: Indexing;
 
     in property <int> indexing-processed;
     in property <int> indexing-total;
@@ -33,7 +34,22 @@ export component PhotoFlowApp inherits Window {
 
     callback close();
 
-    if mode == Mode.Loading: VerticalLayout {
+    if mode == Mode.PreIndexing: VerticalLayout {
+        alignment: center;
+        Image {
+            height: parent.height / 10;
+            source: @image-url("img/spinner.svg");
+        }
+
+        Text {
+            text: indexing-error;
+            horizontal-alignment: center;
+            font-size: parent.height / 40;
+            color: white;
+        }
+    }
+
+    if mode == Mode.Indexing: VerticalLayout {
         alignment: center;
         CircularProgressBar {
             height: parent.height / 3;

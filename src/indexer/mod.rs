@@ -19,10 +19,11 @@ pub fn update_index_bg(
     sources: Vec<String>,
     db: Arc<Mutex<IndexDb>>,
     weak_app: Weak<PhotoFlowApp>,
-    on_done: impl FnOnce(PhotoFlowApp) + Send + 'static,
+    on_start: impl FnOnce(PhotoFlowApp, i32) + Send + 'static,
+    on_finish: impl FnOnce(PhotoFlowApp) + Send + 'static,
 ) {
     rayon::spawn(move || {
-        if let Err(e) = update_index(sources, db, weak_app.clone(), on_done) {
+        if let Err(e) = update_index(sources, db, weak_app.clone(), on_start, on_finish) {
             let _ = weak_app.upgrade_in_event_loop(move |app| {
                 app.set_indexing_error(format!("{:#}", e).into());
             });
@@ -34,7 +35,8 @@ fn update_index(
     sources: Vec<String>,
     db: Arc<Mutex<IndexDb>>,
     weak_app: Weak<PhotoFlowApp>,
-    on_done: impl FnOnce(PhotoFlowApp) + Send + 'static,
+    on_start: impl FnOnce(PhotoFlowApp, i32) + Send + 'static,
+    on_finish: impl FnOnce(PhotoFlowApp) + Send + 'static,
 ) -> anyhow::Result<()> {
     {
         let db = db.lock().map_err(|_| anyhow!("Failed to lock IndexDB"))?;
@@ -49,7 +51,7 @@ fn update_index(
 
     let len = paths.len() as i32;
     weak_app.upgrade_in_event_loop(move |app| {
-        app.set_indexing_total(len);
+        on_start(app, len);
     })?;
 
     index_parallel(&db, &paths, weak_app.clone());
@@ -60,7 +62,7 @@ fn update_index(
         db.rebuild_order_table()?;
     }
 
-    weak_app.upgrade_in_event_loop(on_done)?;
+    weak_app.upgrade_in_event_loop(on_finish)?;
 
     Ok(())
 }

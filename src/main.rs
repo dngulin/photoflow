@@ -30,11 +30,20 @@ fn main() -> anyhow::Result<()> {
     let app = PhotoFlowApp::new()?;
     setup_app_window(&app);
 
-    app.set_mode(Mode::Loading);
-    indexer::update_index_bg(config.sources, db.clone(), app.as_weak(), move |app| {
-        let _ = viewer::bind_models(&app, db);
-        app.set_mode(Mode::Gallery);
-    });
+    app.set_mode(Mode::PreIndexing);
+    indexer::update_index_bg(
+        config.sources,
+        db.clone(),
+        app.as_weak(),
+        move |app, count| {
+            app.set_indexing_total(count);
+            app.set_mode(Mode::Indexing);
+        },
+        move |app| {
+            let _ = viewer::bind_models(&app, db);
+            app.set_mode(Mode::Gallery);
+        },
+    );
 
     app.run()?;
 
