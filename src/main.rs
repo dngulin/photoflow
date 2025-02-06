@@ -1,16 +1,21 @@
 use crate::config::Config;
 use crate::db::IndexDb;
+use crate::gamepad_input::GamepadInputListener;
 use crate::ui::{Mode, PhotoFlowApp};
-use slint::ComponentHandle;
+use crate::winit::WinitWindow;
+use slint::{ComponentHandle, Timer, TimerMode};
 use std::fs;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 mod config;
 mod db;
 mod exif_orientation;
+mod gamepad_input;
 mod img_decoder;
 mod indexer;
 mod viewer;
+mod winit;
 
 pub mod ui {
     slint::include_modules!();
@@ -29,6 +34,7 @@ fn main() -> anyhow::Result<()> {
 
     let app = PhotoFlowApp::new()?;
     setup_app_window(&app);
+    let _ = setup_gamepad_input(&app);
 
     app.set_mode(Mode::PreIndexing);
     indexer::update_index_bg(
@@ -51,7 +57,9 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn setup_app_window(app: &PhotoFlowApp) {
-    app.window().set_fullscreen(true);
+    let window = app.window();
+    window.set_fullscreen(true);
+    window.hide_cursor();
 
     let weak_app = app.as_weak();
     app.on_close(move || {
@@ -59,4 +67,19 @@ fn setup_app_window(app: &PhotoFlowApp) {
             let _ = app.window().hide();
         }
     });
+}
+
+fn setup_gamepad_input(app: &PhotoFlowApp) -> Timer {
+    let mut gamepad_manager = GamepadInputListener::new().unwrap();
+
+    let app_weak = app.as_weak();
+    let gamepad_poll_timer = Timer::default();
+
+    gamepad_poll_timer.start(TimerMode::Repeated, Duration::from_millis(16), move || {
+        if let Some(app) = app_weak.upgrade() {
+            gamepad_manager.poll(app.window());
+        }
+    });
+
+    gamepad_poll_timer
 }

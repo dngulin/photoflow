@@ -11,7 +11,9 @@ x11 = ["slint/backend-winit-x11"]
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4"
+gilrs = "0.11"
 image = "0.25"
+i-slint-backend-winit = "1.9"
 libheif-rs = "1.1"
 nom-exif = "2.2"
 rayon = "1.10"
