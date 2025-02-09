@@ -59,7 +59,7 @@ export component CircularProgressBar {
                 font-size: root.height / 5;
                 font-weight: 700;
                 color: white;
-                text: round(progress * 100) + "%";
+                text: floor(progress * 100) + "%";
             }
 
             Text {
