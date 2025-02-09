@@ -39,6 +39,7 @@ export component PhotoFlowApp inherits Window {
         Image {
             height: parent.height / 10;
             source: @image-url("img/spinner.svg");
+            rotation-angle: 360deg * mod(animation-tick(), 2s) / 2s;
         }
 
         Text {
