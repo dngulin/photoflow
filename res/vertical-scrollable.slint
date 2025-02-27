@@ -16,7 +16,7 @@ export component VerticalScrollable inherits Rectangle {
     in property <float> spring-scroll-mass: 1;
 
     public function set-spring-scroll-target(target: length) {
-        spring.state = SpringAnimator.start(self.viewport-y / 1px, target / 1px, spring.state.velocity);
+        spring.update-target(target);
     }
 
     Rectangle {
@@ -31,17 +31,19 @@ export component VerticalScrollable inherits Rectangle {
         interval: 1s / 60;
         running: SpringAnimator.is-active(state);
 
+        property <SpringState> state;
         property <SpringConfig> config: {
             stiffness: root.spring-scroll-stiffness,
             damping: root.spring-scroll-damping,
             mass:  root.spring-scroll-mass,
         };
 
-        property <SpringState> state;
-        property <float> dt: self.interval / 1s;
+        function update-target(target: length) {
+            state = SpringAnimator.start(root.viewport-y / 1px, target / 1px, spring.state.velocity);
+        }
 
         triggered => {
-            self.state = SpringAnimator.update(self.config, self.state, dt);
+            self.state = SpringAnimator.update(self.config, self.state, self.interval / 1s);
             root.viewport-y = state.current-value * 1px;
         }
     }

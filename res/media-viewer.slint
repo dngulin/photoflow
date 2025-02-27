@@ -34,26 +34,26 @@ export component MediaViewer inherits Rectangle {
         opacity: 0;
 
         property <float> traget-opacity: model.state == ViewerState.Loading ? 1 : 0;
-        changed traget-opacity => {
-            spring.state = SpringAnimator.start(self.opacity, self.traget-opacity, spring.state.velocity);
-        }
+        changed traget-opacity => { spring.update-target(); }
     }
 
     spring := Timer {
         interval: 1s / 60;
         running: SpringAnimator.is-active(state);
 
+        property <SpringState> state;
         property <SpringConfig> config: {
-            stiffness: 700,
+            stiffness: 500,
             damping: 40,
             mass:  1,
         };
 
-        property <SpringState> state;
-        property <float> dt: self.interval / 1s;
+        function update-target() {
+            state = SpringAnimator.start(spinner.opacity, spinner.traget-opacity, state.velocity);
+        }
 
         triggered => {
-            self.state = SpringAnimator.update(self.config, self.state, dt);
+            self.state = SpringAnimator.update(self.config, self.state, self.interval / 1s);
             spinner.opacity = state.current-value;
         }
     }
