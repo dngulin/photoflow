@@ -5,7 +5,7 @@ use self::image_grid_model::ImageGridModel;
 use crate::db::IndexDb;
 use crate::exif_orientation::ExifOrientation;
 use crate::img_decoder;
-use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp};
+use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
 use anyhow::anyhow;
 use slint::{ComponentHandle, Image, Rgb8Pixel, SharedPixelBuffer, SharedString, Weak};
 use std::path::Path;
@@ -101,7 +101,7 @@ fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Optio
     let bridge = app.global::<MediaViewerBridge>();
     let model = bridge.get_model();
     bridge.set_model(MediaViewerModel {
-        is_loading: true,
+        state: ViewerState::Loading,
         file_name: file_name.into(),
         image: model.image,
     });
@@ -149,7 +149,7 @@ fn set_image_to_model(app: &PhotoFlowApp, buffer: SharedPixelBuffer<Rgb8Pixel>) 
     let bridge = app.global::<MediaViewerBridge>();
     let model = bridge.get_model();
     bridge.set_model(MediaViewerModel {
-        is_loading: false,
+        state: ViewerState::Loaded,
         file_name: model.file_name,
         image: Image::from_rgb8(buffer),
     });
@@ -161,7 +161,7 @@ fn clear(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader) -> Option<()> {
     let app = weak_app.upgrade()?;
     let bridge = app.global::<MediaViewerBridge>();
     bridge.set_model(MediaViewerModel {
-        is_loading: false,
+        state: ViewerState::Loaded,
         file_name: SharedString::default(),
         image: Image::default(),
     });

@@ -1,5 +1,5 @@
 import { ImageGrid, ImageGridItem } from "image-grid.slint";
-import { MediaViewer, MediaViewerModel } from "media-viewer.slint";
+import { MediaViewer, MediaViewerModel, ViewerState } from "media-viewer.slint";
 import { CircularProgressBar } from "circular-progress-bar.slint";
 
 export global MediaViewerBridge {
@@ -116,12 +116,12 @@ export component PhotoFlowApp inherits Window {
         img-focus-scope := FocusScope {
             key-pressed(event) => {
                 if (event.text == Key.RightArrow) {
-                    if (!parent.model.is-loading) {
+                    if (parent.model.state != ViewerState.Loading) {
                         root.selected-idx = clamp(root.selected-idx + 1, 0, root.max-selected-idx);
                         MediaViewerBridge.load(root.selected-idx);
                     }
                 } else if (event.text == Key.LeftArrow) {
-                    if (!parent.model.is-loading) {
+                    if (parent.model.state != ViewerState.Loading) {
                         root.selected-idx = clamp(root.selected-idx - 1, 0, root.max-selected-idx);
                         MediaViewerBridge.load(root.selected-idx);
                     }

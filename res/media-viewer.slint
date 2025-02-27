@@ -1,5 +1,13 @@
+import { SpringConfig, SpringState, SpringAnimator } from "spring-animator.slint";
+
+export enum ViewerState {
+    Loading,
+    Loaded,
+    FailedToLoad
+}
+
 export struct MediaViewerModel {
-    is-loading: bool,
+    state: ViewerState,
     file-name: string,
     image: image,
 }
@@ -10,37 +18,50 @@ export component MediaViewer inherits Rectangle {
     clip: true;
 
     in property <MediaViewerModel> model;
-    in property <length> line-height: 24px;
 
-    property <image> spinner-img: @image-url("img/spinner.svg");
-
-    Image {
+    if model.state != ViewerState.FailedToLoad: Image {
         width: 100%;
         height: 100%;
         image-fit: contain;
         source: model.image;
     }
 
-    if root.model.is-loading: VerticalLayout {
-        alignment: end;
-        HorizontalLayout {
-            alignment: end;
-            spacing: 2px;
+    spinner := Image {
+        x: parent.width - self.width;
+        y: parent.height - self.height;
+        source: @image-url("img/spinner.svg");
+        rotation-angle: 360deg * mod(animation-tick(), 2s) / 2s;
+        opacity: 0;
 
-            Image {
-                source: root.spinner-img;
-                rotation-angle: 360deg * mod(animation-tick(), 2s) / 2s;
-                height: root.line-height;
-            }
-
-            Text {
-                font-family: "Ubuntu";
-                font-size: root.line-height * 0.6;
-                text: model.file-name;
-                color: white;
-                vertical-alignment: center;
-                horizontal-alignment: left;
-            }
+        property <float> traget-opacity: model.state == ViewerState.Loading ? 1 : 0;
+        changed traget-opacity => {
+            spring.state = SpringAnimator.start(self.opacity, self.traget-opacity, spring.state.velocity);
         }
+    }
+
+    spring := Timer {
+        interval: 1s / 60;
+        running: SpringAnimator.is-active(state);
+
+        property <SpringConfig> config: {
+            stiffness: 700,
+            damping: 40,
+            mass:  1,
+        };
+
+        property <SpringState> state;
+        property <float> dt: self.interval / 1s;
+
+        triggered => {
+            self.state = SpringAnimator.update(self.config, self.state, dt);
+            spinner.opacity = state.current-value;
+        }
+    }
+
+    if model.state == ViewerState.FailedToLoad: Text {
+        text: model.file-name;
+        color: white;
+        vertical-alignment: center;
+        horizontal-alignment: center;
     }
 }
