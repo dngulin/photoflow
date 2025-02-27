@@ -6,6 +6,13 @@ export struct ImageGridItem {
 }
 
 export component ImageGrid inherits VerticalScrollable {
+    // Input
+    forward-focus: fs;
+    in-out property <bool> enabled: true;
+
+    callback enter();
+    callback exit();
+
     // Visual config
     in property <length> content-pad-size: 4px;
     in property <length> img-size: 235px;
@@ -80,6 +87,37 @@ export component ImageGrid inherits VerticalScrollable {
             y: root.item-pos-y(root.selected-idx);
             border-width: root.img-pad-size;
             border-color: white;
+        }
+    }
+
+    fs := FocusScope {
+        enabled: parent.enabled;
+
+        key-pressed(event) => {
+            if (!self.enabled) {
+                reject
+            }
+            if (event.text == Key.RightArrow) {
+                mv-selection-right();
+                accept
+            } else if (event.text == Key.LeftArrow) {
+                mv-selection-left();
+                accept
+            } else if (event.text == Key.UpArrow) {
+                mv-selection-up();
+                accept
+            } else if (event.text == Key.DownArrow) {
+                mv-selection-down();
+                accept
+            } else if (event.text == Key.Return) {
+                set-visible-range(0, 0);
+                enter();
+                accept
+            } else if (event.text == Key.Escape) {
+                exit();
+                accept
+            }
+            accept
         }
     }
 

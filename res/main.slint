@@ -77,61 +77,41 @@ export component PhotoFlowApp inherits Window {
 
         init => {
             self.set-selected-idx(root.selected-idx, root.prev-viewport-pos);
-            grid-focus-scope.focus();
+            self.focus();
         }
 
-        grid-focus-scope := FocusScope {
-            key-pressed(event) => {
-                if (event.text == Key.RightArrow) {
-                    parent.mv-selection-right();
-                } else if (event.text == Key.LeftArrow) {
-                    parent.mv-selection-left();
-                } else if (event.text == Key.UpArrow) {
-                    parent.mv-selection-up();
-                } else if (event.text == Key.DownArrow) {
-                    parent.mv-selection-down();
-                } else if (event.text == Key.Return) {
-                    parent.set-visible-range(0, 0);
-                    root.prev-viewport-pos = parent.viewport-y;
-                    root.selected-idx = parent.selected-idx;
-                    root.mode = Mode.Viewer;
-                } else if (event.text == Key.Escape) {
-                    root.close();
-                }
-                accept
-            }
+        enter => {
+            root.prev-viewport-pos = self.viewport-y;
+            root.selected-idx = self.selected-idx;
+            root.mode = Mode.Viewer;
+        }
+
+        exit => {
+            root.close();
         }
     }
 
     if mode == Mode.Viewer: MediaViewer {
-        width: 100%;
-        height: 100%;
-
         model: MediaViewerBridge.model;
 
         init => {
             MediaViewerBridge.load(root.selected-idx);
-            img-focus-scope.focus();
+            self.focus();
         }
 
-        img-focus-scope := FocusScope {
-            key-pressed(event) => {
-                if (event.text == Key.RightArrow) {
-                    if (parent.model.state != ViewerState.Loading) {
-                        root.selected-idx = clamp(root.selected-idx + 1, 0, root.max-selected-idx);
-                        MediaViewerBridge.load(root.selected-idx);
-                    }
-                } else if (event.text == Key.LeftArrow) {
-                    if (parent.model.state != ViewerState.Loading) {
-                        root.selected-idx = clamp(root.selected-idx - 1, 0, root.max-selected-idx);
-                        MediaViewerBridge.load(root.selected-idx);
-                    }
-                } else if (event.text == Key.Escape) {
-                    MediaViewerBridge.clear();
-                    root.mode = Mode.Gallery;
-                }
-                accept
-            }
+        next => {
+            root.selected-idx = clamp(root.selected-idx + 1, 0, root.max-selected-idx);
+            MediaViewerBridge.load(root.selected-idx);
+        }
+
+        prev => {
+            root.selected-idx = clamp(root.selected-idx - 1, 0, root.max-selected-idx);
+            MediaViewerBridge.load(root.selected-idx);
+        }
+
+        exit => {
+            MediaViewerBridge.clear();
+            root.mode = Mode.Gallery;
         }
     }
 

@@ -19,6 +19,13 @@ export component MediaViewer inherits Rectangle {
 
     in property <MediaViewerModel> model;
 
+    forward-focus: fs;
+    in-out property <bool> enabled: true;
+
+    callback next();
+    callback prev();
+    callback exit();
+
     if model.state != ViewerState.FailedToLoad: Image {
         width: 100%;
         height: 100%;
@@ -59,5 +66,31 @@ export component MediaViewer inherits Rectangle {
         color: white;
         vertical-alignment: center;
         horizontal-alignment: center;
+    }
+
+    fs := FocusScope {
+        enabled: parent.enabled;
+        key-pressed(event) => {
+            if (!self.enabled)
+            {
+                reject
+            }
+
+            if (event.text == Key.RightArrow) {
+                if (model.state != ViewerState.Loading) {
+                    next();
+                }
+                accept
+            } else if (event.text == Key.LeftArrow) {
+                if (model.state != ViewerState.Loading) {
+                    prev();
+                }
+                accept
+            } else if (event.text == Key.Escape) {
+                exit();
+                accept
+            }
+            reject
+        }
     }
 }
