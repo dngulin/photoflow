@@ -16,7 +16,7 @@ export component VerticalScrollable inherits Rectangle {
     in property <float> spring-scroll-mass: 1;
 
     public function set-spring-scroll-target(target: length) {
-        spring.update-target(target);
+        scroll-spring.update-target(target);
     }
 
     Rectangle {
@@ -27,7 +27,7 @@ export component VerticalScrollable inherits Rectangle {
         @children
     }
 
-    spring := Timer {
+    scroll-spring := Timer {
         interval: 1s / 60;
         running: Spring.is-active(state);
 
@@ -39,11 +39,11 @@ export component VerticalScrollable inherits Rectangle {
         };
 
         function update-target(target: length) {
-            state = Spring.start(root.viewport-y / 1px, target / 1px, spring.state.velocity);
+            state = Spring.start(root.viewport-y / 1px, target / 1px, state.velocity);
         }
 
         triggered => {
-            self.state = Spring.update(self.config, self.state, self.interval / 1s);
+            self.state = Spring.update(config, state, self.interval / 1s);
             root.viewport-y = state.current-value * 1px;
         }
     }
