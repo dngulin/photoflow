@@ -1,3 +1,5 @@
+import { SpringConfig, SpringState, SpringAnimator } from "spring-animator.slint";
+
 export component VerticalScrollable inherits Rectangle {
     width: 100%;
     height: 100%;
@@ -14,8 +16,7 @@ export component VerticalScrollable inherits Rectangle {
     in property <float> spring-scroll-mass: 1;
 
     public function set-spring-scroll-target(target: length) {
-        spring.tgt-value = target;
-        spring.running = true;
+        spring.state = SpringAnimator.start(self.viewport-y / 1px, target / 1px, spring.state.velocity);
     }
 
     Rectangle {
@@ -28,31 +29,20 @@ export component VerticalScrollable inherits Rectangle {
 
     spring := Timer {
         interval: 1s / 60;
-        running: false;
+        running: SpringAnimator.is-active(state);
 
-        in property <float> stiffness: root.spring-scroll-stiffness;
-        in property <float> damping: root.spring-scroll-damping;
-        in property <float> mass: root.spring-scroll-mass;
+        property <SpringConfig> config: {
+            stiffness: root.spring-scroll-stiffness,
+            damping: root.spring-scroll-damping,
+            mass:  root.spring-scroll-mass,
+        };
 
-        property <length> tgt-value;
-
-        property <length> displacement: root.viewport-y - self.tgt-value;
-        property <float> stiffness-force: -displacement / 1px * stiffness;
-
-        property <float> velocity: 0;
-        property <float> damping-force: -velocity * damping;
-
+        property <SpringState> state;
         property <float> dt: self.interval / 1s;
 
         triggered => {
-            self.velocity += (self.stiffness-force + self.damping-force) / self.mass * dt;
-            root.viewport-y += self.velocity * dt * 1px;
-
-            if (displacement < 1phx && abs(self.velocity * dt) < 0.1) {
-                self.velocity = 0;
-                root.viewport-y = self.tgt-value;
-                self.running = false;
-            }
+            self.state = SpringAnimator.update(self.config, self.state, dt);
+            root.viewport-y = state.current-value * 1px;
         }
     }
 }

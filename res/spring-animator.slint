@@ -1,0 +1,65 @@
+export struct SpringConfig {
+    mass: float,
+    stiffness: float,
+    damping: float,
+}
+
+export struct SpringState {
+    current-value: float,
+    target-value: float,
+    velocity: float,
+}
+
+export global SpringAnimator {
+    public pure function start(curr: float, target: float, velocity: float) -> SpringState {
+        {
+            current-value: curr,
+            target-value: target,
+            velocity: velocity,
+        }
+    }
+
+    public pure function update(cfg: SpringConfig, state: SpringState, dt: float) -> SpringState {
+        try-calm(updated-state(state, updated-velocity(cfg, state, dt), dt))
+    }
+
+    public pure function is-active(state: SpringState) -> bool {
+        !is-calmed(state)
+    }
+
+    pure function displacement(state: SpringState) -> float {
+        state.current-value - state.target-value
+    }
+
+    pure function stiffness-force(cfg: SpringConfig, state: SpringState) -> float {
+        -displacement(state) * cfg.stiffness
+    }
+
+    pure function damping-force(cfg: SpringConfig, state: SpringState) -> float {
+        -state.velocity * cfg.damping
+    }
+
+    pure function updated-velocity(cfg: SpringConfig, state: SpringState, dt: float) -> float {
+        state.velocity + (stiffness-force(cfg, state) + damping-force(cfg, state)) / cfg.mass * dt
+    }
+
+    pure function updated-state(state: SpringState, velocity: float, dt: float) -> SpringState {
+        {
+            velocity: velocity,
+            current-value: state.current-value + velocity * dt,
+            target-value: state.target-value
+        }
+    }
+
+    pure function try-calm(state: SpringState) -> SpringState {
+        if (is-calmed(state)) {
+            { velocity: 0, current-value: state.target-value, target-value: state.target-value }
+        } else {
+            state
+        }
+    }
+
+    pure function is-calmed(state: SpringState) -> bool {
+        abs(displacement(state)) < 0.001 && abs(state.velocity) < 0.001
+    }
+}
