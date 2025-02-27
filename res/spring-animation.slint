@@ -10,7 +10,7 @@ export struct SpringState {
     velocity: float,
 }
 
-export global SpringAnimator {
+export global Spring {
     public pure function start(curr: float, target: float, velocity: float) -> SpringState {
         {
             current-value: curr,

@@ -1,4 +1,4 @@
-import { SpringConfig, SpringState, SpringAnimator } from "spring-animator.slint";
+import { SpringConfig, SpringState, Spring } from "spring-animation.slint";
 
 export component VerticalScrollable inherits Rectangle {
     width: 100%;
@@ -29,7 +29,7 @@ export component VerticalScrollable inherits Rectangle {
 
     spring := Timer {
         interval: 1s / 60;
-        running: SpringAnimator.is-active(state);
+        running: Spring.is-active(state);
 
         property <SpringState> state;
         property <SpringConfig> config: {
@@ -39,11 +39,11 @@ export component VerticalScrollable inherits Rectangle {
         };
 
         function update-target(target: length) {
-            state = SpringAnimator.start(root.viewport-y / 1px, target / 1px, spring.state.velocity);
+            state = Spring.start(root.viewport-y / 1px, target / 1px, spring.state.velocity);
         }
 
         triggered => {
-            self.state = SpringAnimator.update(self.config, self.state, self.interval / 1s);
+            self.state = Spring.update(self.config, self.state, self.interval / 1s);
             root.viewport-y = state.current-value * 1px;
         }
     }

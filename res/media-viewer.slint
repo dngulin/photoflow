@@ -1,4 +1,4 @@
-import { SpringConfig, SpringState, SpringAnimator } from "spring-animator.slint";
+import { SpringConfig, SpringState, Spring } from "spring-animation.slint";
 
 export enum ViewerState {
     Loading,
@@ -39,7 +39,7 @@ export component MediaViewer inherits Rectangle {
 
     spring := Timer {
         interval: 1s / 60;
-        running: SpringAnimator.is-active(state);
+        running: Spring.is-active(state);
 
         property <SpringState> state;
         property <SpringConfig> config: {
@@ -49,11 +49,11 @@ export component MediaViewer inherits Rectangle {
         };
 
         function update-target() {
-            state = SpringAnimator.start(spinner.opacity, spinner.traget-opacity, state.velocity);
+            state = Spring.start(spinner.opacity, spinner.traget-opacity, state.velocity);
         }
 
         triggered => {
-            self.state = SpringAnimator.update(self.config, self.state, self.interval / 1s);
+            self.state = Spring.update(self.config, self.state, self.interval / 1s);
             spinner.opacity = state.current-value;
         }
     }
