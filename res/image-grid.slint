@@ -151,15 +151,15 @@ export component ImageGrid inherits VerticalScrollable {
     }
 
     public function mv-selection-up() {
-        if (selected-idx - cols >= 0) {
-            selected-idx -= cols;
+        if (item-row(max(selected-idx - cols, 0)) < item-row(selected-idx)) {
+            selected-idx = max(selected-idx - cols, 0);
             update-viewport-pos(false);
         }
     }
 
     public function mv-selection-down() {
-        if (selected-idx + cols < item-count) {
-            selected-idx += cols;
+        if (item-row(min(selected-idx + cols, item-count - 1)) > item-row(selected-idx)) {
+            selected-idx = min(selected-idx + cols, item-count - 1);
             update-viewport-pos(false);
         }
     }
