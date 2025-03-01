@@ -38,7 +38,6 @@ export component MediaViewer inherits Rectangle {
         y: parent.height - self.height;
         source: @image-url("img/spinner.svg");
         rotation-angle: 360deg * mod(animation-tick(), 2s) / 2s;
-        opacity: 0;
 
         property <float> traget-opacity: model.state == ViewerState.Loading ? 1 : 0;
         changed traget-opacity => { spinner-opacity-spring.update-target(); }
