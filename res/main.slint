@@ -100,13 +100,17 @@ export component PhotoFlowApp inherits Window {
         }
 
         next => {
-            root.selected-idx = clamp(root.selected-idx + 1, 0, root.max-selected-idx);
-            MediaViewerBridge.load(root.selected-idx);
+            if (root.selected-idx < root.max-selected-idx) {
+                root.selected-idx += 1;
+                MediaViewerBridge.load(root.selected-idx);
+            }
         }
 
         prev => {
-            root.selected-idx = clamp(root.selected-idx - 1, 0, root.max-selected-idx);
-            MediaViewerBridge.load(root.selected-idx);
+            if (root.selected-idx > 0) {
+                root.selected-idx -= 1;
+                MediaViewerBridge.load(root.selected-idx);
+            }
         }
 
         exit => {
