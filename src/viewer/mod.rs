@@ -111,8 +111,7 @@ fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Optio
 
     *requested_idx = Some(idx);
     rayon::spawn_fifo(move || {
-        let buffer = load_image(&loader, idx, path, orientation)
-            .unwrap_or_else(|| SharedPixelBuffer::<Rgb8Pixel>::new(0, 0));
+        let opt_buffer = load_image(&loader, idx, path, orientation);
 
         let _ = weak_app.upgrade_in_event_loop(move |app| {
             let mut requested = loader.requested_idx.lock().unwrap();
@@ -121,7 +120,10 @@ fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Optio
             }
             *requested = None;
 
-            set_image_to_model(&app, buffer);
+            match opt_buffer {
+                None => set_image_failed_to_load(&app),
+                Some(buffer) => set_image_loaded(&app, buffer),
+            }
         });
     });
 
@@ -145,13 +147,23 @@ fn load_image(
     ))
 }
 
-fn set_image_to_model(app: &PhotoFlowApp, buffer: SharedPixelBuffer<Rgb8Pixel>) {
+fn set_image_loaded(app: &PhotoFlowApp, buffer: SharedPixelBuffer<Rgb8Pixel>) {
     let bridge = app.global::<MediaViewerBridge>();
     let model = bridge.get_model();
     bridge.set_model(MediaViewerModel {
         state: ViewerState::Loaded,
         file_name: model.file_name,
         image: Image::from_rgb8(buffer),
+    });
+}
+
+fn set_image_failed_to_load(app: &PhotoFlowApp) {
+    let bridge = app.global::<MediaViewerBridge>();
+    let model = bridge.get_model();
+    bridge.set_model(MediaViewerModel {
+        state: ViewerState::FailedToLoad,
+        file_name: model.file_name,
+        image: Image::default(),
     });
 }
 
