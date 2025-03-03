@@ -11,7 +11,7 @@ pub fn is_extension_supported(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn has_heic_extension(path: &Path) -> bool {
+fn is_heic(path: &Path) -> bool {
     path.extension()
         .map(move |ext| ext.eq_ignore_ascii_case("heic"))
         .unwrap_or(false)
@@ -22,7 +22,7 @@ pub fn open(path: &Path, orientation: ExifOrientation) -> anyhow::Result<Dynamic
         anyhow::bail!("Unsupported image format")
     }
 
-    if has_heic_extension(path) {
+    if is_heic(path) {
         return decode_heic(path);
     }
 

@@ -1,8 +1,8 @@
 mod metadata;
+mod preview;
 mod thumbnail;
 
 use crate::db::{IndexDb, InsertionEntry};
-use crate::img_decoder;
 use crate::ui::PhotoFlowApp;
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
@@ -72,7 +72,7 @@ fn collect_paths<P: AsRef<Path>>(source: P, target: &mut HashSet<PathBuf>) {
         .into_iter()
         .filter_map(|r| r.ok())
         .filter(is_not_hidden)
-        .filter(|e| img_decoder::is_extension_supported(e.path()))
+        .filter(|e| preview::is_extension_supported(e.path()))
         .map(|e| e.path().to_path_buf());
     target.extend(it);
 }
@@ -134,7 +134,7 @@ fn index_file<P: AsRef<Path>>(
         Some(value) => value,
     };
 
-    let image = img_decoder::open(path.as_ref(), metadata.orientation)?;
+    let image = preview::open(path.as_ref(), metadata.orientation)?;
     let thumbnail = thumbnail::get_squared_jpeg(&image, 470)?;
 
     let entry = InsertionEntry {

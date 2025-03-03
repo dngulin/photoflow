@@ -32,6 +32,8 @@ fn main() -> anyhow::Result<()> {
     let db = IndexDb::open(config.db_path)?;
     let db = Arc::new(Mutex::new(db));
 
+    gstreamer::init()?;
+
     let app = PhotoFlowApp::new()?;
     setup_app_window(&app);
     let _gamepad_poll_timer = setup_gamepad_input(&app);
