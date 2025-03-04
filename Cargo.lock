@@ -2003,6 +2003,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "gstreamer-gl"
+version = "0.23.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02818bd81028abc4ee7b0106c21625be9a2f86ba5fd41ccff58359537637db59"
+dependencies = [
+ "glib 0.20.9",
+ "gstreamer",
+ "gstreamer-base",
+ "gstreamer-gl-sys",
+ "gstreamer-video",
+ "libc",
+ "once_cell",
+]
+
+[[package]]
+name = "gstreamer-gl-sys"
+version = "0.23.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c2984f8c246407fabbecf852c4595dd1487f4cc495386e17ad31acb69db7d39"
+dependencies = [
+ "glib-sys 0.20.9",
+ "gobject-sys 0.20.9",
+ "gstreamer-base-sys",
+ "gstreamer-sys",
+ "gstreamer-video-sys",
+ "libc",
+ "system-deps 7.0.3",
+]
+
+[[package]]
 name = "gstreamer-sys"
 version = "0.23.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3740,6 +3770,7 @@ dependencies = [
  "gilrs",
  "gstreamer",
  "gstreamer-app",
+ "gstreamer-gl",
  "gstreamer-video",
  "i-slint-backend-winit",
  "image",
