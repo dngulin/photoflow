@@ -30,7 +30,7 @@ pub fn open(path: &Path, orientation: ExifOrientation) -> anyhow::Result<Dynamic
 
 fn get_video_preview(path: &Path) -> anyhow::Result<DynamicImage> {
     const GST_PIPELINE: &str =
-        "filesrc name=src ! decodebin ! videoflip method=automatic ! videoconvert ! appsink name=sink";
+        "filesrc name=src ! decodebin ! videoflip video-direction=auto ! videoconvert ! appsink name=sink";
     let pipeline = gstreamer::parse::launch(GST_PIPELINE)?
         .downcast::<gstreamer::Pipeline>()
         .map_err(|_| anyhow!("Failed to downcast a pipeline"))?;
