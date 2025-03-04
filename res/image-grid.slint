@@ -29,7 +29,7 @@ export component ImageGrid inherits VerticalScrollable {
 
     pure function visibility-hook(value: bool) -> bool {
         if (value) {
-            set-visible-range(model-offset, model-length);
+            set-visible-range(vis-offset, vis-length);
         }
         value
     }
@@ -196,6 +196,6 @@ export component ImageGrid inherits VerticalScrollable {
     property <int> min-visible-row: floor(self.viewport-start / item-size);
     property <int> max-visible-row: ceil(self.viewport-end / item-size);
 
-    property <int> model-offset: clamp(min-visible-row * cols, 0, max(item-count - 1, 0));
-    property <int> model-length: clamp(max-visible-row * cols - model-offset, 0, max(item-count - model-offset, 0));
+    property <int> vis-offset: clamp(min-visible-row * cols, 0, max(item-count - 1, 0));
+    property <int> vis-length: clamp(max-visible-row * cols - vis-offset, 0, max(item-count - vis-length, 0));
 }
