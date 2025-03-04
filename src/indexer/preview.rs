@@ -39,7 +39,8 @@ fn get_video_preview(path: &Path) -> anyhow::Result<DynamicImage> {
     src.set_property("location", path);
 
     let sink = pipeline.get::<AppSink>("sink")?;
-    sink.set_sync(false);
+    sink.set_property("sync", false);
+    sink.set_property("wait-on-eos", false);
 
     let caps = VideoCapsBuilder::new().format(VideoFormat::Rgb).build();
     sink.set_caps(Some(&caps));
