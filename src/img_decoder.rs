@@ -11,23 +11,24 @@ pub fn is_extension_supported(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn is_heic(path: &Path) -> bool {
-    path.extension()
-        .map(move |ext| ext.eq_ignore_ascii_case("heic"))
-        .unwrap_or(false)
-}
-
-pub fn open(path: &Path, orientation: ExifOrientation) -> anyhow::Result<DynamicImage> {
+pub fn open(path: &Path) -> anyhow::Result<DecodedImage> {
     if !is_extension_supported(path) {
         anyhow::bail!("Unsupported image format")
     }
 
     if is_heic(path) {
-        return decode_heic(path);
+        let image = decode_heic(path)?;
+        return Ok(DecodedImage::WithTransformations(image));
     }
 
     let image = image::open(path)?;
-    Ok(orientation.apply(image))
+    Ok(DecodedImage::WithoutTransformations(image))
+}
+
+fn is_heic(path: &Path) -> bool {
+    path.extension()
+        .map(move |ext| ext.eq_ignore_ascii_case("heic"))
+        .unwrap_or(false)
 }
 
 fn decode_heic(path: &Path) -> anyhow::Result<DynamicImage> {
@@ -63,6 +64,27 @@ fn allocate_rgb_buffer(p: &Plane<&[u8]>) -> Option<Vec<u8>> {
                 buf.extend(&line[..line_len]);
             }
             Some(buf)
+        }
+    }
+}
+
+pub enum DecodedImage {
+    WithTransformations(DynamicImage),
+    WithoutTransformations(DynamicImage),
+}
+
+impl DecodedImage {
+    pub fn oriented(self, orientation: ExifOrientation) -> DynamicImage {
+        match self {
+            DecodedImage::WithTransformations(image) => image,
+            DecodedImage::WithoutTransformations(image) => orientation.apply(image),
+        }
+    }
+
+    pub fn map<F: FnOnce(DynamicImage) -> DynamicImage>(self, f: F) -> Self {
+        match self {
+            DecodedImage::WithTransformations(i) => DecodedImage::WithTransformations(f(i)),
+            DecodedImage::WithoutTransformations(i) => DecodedImage::WithoutTransformations(f(i)),
         }
     }
 }

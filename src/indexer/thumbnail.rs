@@ -1,19 +1,8 @@
-use image::codecs::jpeg::JpegEncoder;
 use image::imageops::FilterType;
 use image::DynamicImage;
 use image::GenericImageView;
 
-pub fn get_squared_jpeg(image: &DynamicImage, size: u32) -> anyhow::Result<Vec<u8>> {
-    let thumbnail = get_squared(image, size);
-
-    let mut result = Vec::new();
-    let encoder = JpegEncoder::new_with_quality(&mut result, 70);
-    thumbnail.write_with_encoder(encoder)?;
-
-    Ok(result)
-}
-
-fn get_squared(image: &DynamicImage, size: u32) -> DynamicImage {
+pub fn squared(image: &DynamicImage, size: u32) -> DynamicImage {
     let (w, h) = image.dimensions();
 
     if w == h {

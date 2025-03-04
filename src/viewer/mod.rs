@@ -137,7 +137,9 @@ fn load_image(
     orientation: ExifOrientation,
 ) -> Option<SharedPixelBuffer<Rgb8Pixel>> {
     loader.ensure_requested(idx)?;
-    let image = img_decoder::open(Path::new(&path), orientation).ok()?;
+    let image = img_decoder::open(Path::new(&path))
+        .map(|img| img.oriented(orientation))
+        .ok()?;
     let rgb = image.into_rgb8();
 
     Some(SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(

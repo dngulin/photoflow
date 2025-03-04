@@ -1,5 +1,5 @@
-use crate::exif_orientation::ExifOrientation;
 use crate::img_decoder;
+use crate::img_decoder::DecodedImage;
 use anyhow::anyhow;
 use gstreamer::prelude::{Cast, ElementExt, ElementExtManual, GstBinExt, IsA, ObjectExt};
 use gstreamer_app::{AppSink, AppSinkCallbacks};
@@ -20,15 +20,15 @@ fn is_video(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-pub fn open(path: &Path, orientation: ExifOrientation) -> anyhow::Result<DynamicImage> {
+pub fn open(path: &Path) -> anyhow::Result<DecodedImage> {
     if is_video(path) {
         return get_video_preview(path);
     }
 
-    img_decoder::open(path, orientation)
+    img_decoder::open(path)
 }
 
-fn get_video_preview(path: &Path) -> anyhow::Result<DynamicImage> {
+fn get_video_preview(path: &Path) -> anyhow::Result<DecodedImage> {
     const GST_PIPELINE: &str =
         "filesrc name=src ! decodebin ! videoflip video-direction=auto ! videoconvert ! appsink name=sink";
     let pipeline = gstreamer::parse::launch(GST_PIPELINE)?
@@ -98,7 +98,10 @@ fn get_video_preview(path: &Path) -> anyhow::Result<DynamicImage> {
     pipeline.set_state(gstreamer::State::Null)?;
 
     let mut result = result.lock().unwrap();
-    result.take().ok_or(anyhow!("Failed to get video preview"))
+    result
+        .take()
+        .map(|img| DecodedImage::WithTransformations(img))
+        .ok_or(anyhow!("Failed to get video thumbnail"))
 }
 
 fn decode_sample(sink: &AppSink) -> Option<DynamicImage> {

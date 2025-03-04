@@ -1,11 +1,13 @@
+mod media_decoder;
 mod metadata;
-mod preview;
 mod thumbnail;
 
 use crate::db::{IndexDb, InsertionEntry};
 use crate::ui::PhotoFlowApp;
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
+use image::codecs::jpeg::JpegEncoder;
+use image::DynamicImage;
 use nom_exif::MediaParser;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use slint::Weak;
@@ -72,7 +74,7 @@ fn collect_paths<P: AsRef<Path>>(source: P, target: &mut HashSet<PathBuf>) {
         .into_iter()
         .filter_map(|r| r.ok())
         .filter(is_not_hidden)
-        .filter(|e| preview::is_extension_supported(e.path()))
+        .filter(|e| media_decoder::is_extension_supported(e.path()))
         .map(|e| e.path().to_path_buf());
     target.extend(it);
 }
@@ -134,15 +136,17 @@ fn index_file<P: AsRef<Path>>(
         Some(value) => value,
     };
 
-    let image = preview::open(path.as_ref(), metadata.orientation)?;
-    let thumbnail = thumbnail::get_squared_jpeg(&image, 470)?;
+    let image = media_decoder::open(path.as_ref())?;
+    let thumbnail = image
+        .map(|img| thumbnail::squared(&img, 470))
+        .oriented(metadata.orientation);
 
     let entry = InsertionEntry {
         path: path_str,
         finfo: &finfo,
         timestamp: datetime.timestamp(),
         orientation: metadata.orientation.into(),
-        thumbnail: &thumbnail,
+        thumbnail: &encode_jpeg(&thumbnail)?,
     };
 
     {
@@ -157,4 +161,12 @@ fn get_finfo_str(m: &fs::Metadata) -> anyhow::Result<String> {
     let modified: DateTime<Utc> = m.modified()?.into();
     let formatted = format!("{:x}:{:x}", m.len(), modified.timestamp());
     Ok(formatted)
+}
+
+fn encode_jpeg(image: &DynamicImage) -> anyhow::Result<Vec<u8>> {
+    let mut result = Vec::new();
+    let encoder = JpegEncoder::new_with_quality(&mut result, 70);
+    image.write_with_encoder(encoder)?;
+
+    Ok(result)
 }
