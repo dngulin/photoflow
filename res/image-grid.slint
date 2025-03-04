@@ -197,5 +197,5 @@ export component ImageGrid inherits VerticalScrollable {
     property <int> max-visible-row: ceil(self.viewport-end / item-size);
 
     property <int> vis-offset: clamp(min-visible-row * cols, 0, max(item-count - 1, 0));
-    property <int> vis-length: clamp(max-visible-row * cols - vis-offset, 0, max(item-count - vis-length, 0));
+    property <int> vis-length: clamp(max-visible-row * cols - vis-offset, 0, max(item-count - vis-offset, 0));
 }
