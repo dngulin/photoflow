@@ -21,7 +21,7 @@ export component ImageGrid inherits VerticalScrollable {
     // Model setup
     in property <int> item-count: 0;
     in property <[ImageGridItem]> model;
-    pure callback set-visible-range(int, int);
+    pure callback set-visible-range(offset: int, length: int);
 
     // Hack to auto-synchronise view-model range
     in property <bool> is-visible: true;
