@@ -1,4 +1,5 @@
 mod image_grid_model;
+mod player;
 
 use self::image_grid_model::ImageGridModel;
 
