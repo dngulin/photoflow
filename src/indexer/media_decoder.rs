@@ -100,7 +100,7 @@ fn get_video_preview(path: &Path) -> anyhow::Result<DecodedImage> {
     let mut result = result.lock().unwrap();
     result
         .take()
-        .map(|img| DecodedImage::WithTransformations(img))
+        .map(DecodedImage::WithTransformations)
         .ok_or(anyhow!("Failed to get video thumbnail"))
 }
 
