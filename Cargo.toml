@@ -5,8 +5,8 @@ edition = "2021"
 
 [features]
 default = ["wayland"]
-wayland = ["slint/backend-winit-wayland"]
-x11 = ["slint/backend-winit-x11"]
+wayland = ["slint/backend-winit-wayland", "dep:gstreamer-gl-egl", "glutin_egl_sys"]
+x11 = ["slint/backend-winit-x11", "dep:gstreamer-gl-x11", "glutin_glx_sys"]
 
 [dependencies]
 anyhow = "1.0"
@@ -14,10 +14,8 @@ chrono = "0.4"
 gilrs = "0.11"
 gstreamer = "0.23"
 gstreamer-app = "0.23"
-gstreamer-video = "0.23.5"
-gstreamer-gl = "0.23.5"
-gstreamer-gl-egl = "0.23.5"
-glutin_egl_sys = "0.7"
+gstreamer-video = "0.23"
+gstreamer-gl = "0.23"
 image = "0.25"
 i-slint-backend-winit = "=1.10.0"
 libheif-rs = "1.1"
@@ -29,6 +27,10 @@ serde_derive = "1.0"
 slint = { version = "=1.10.0", default-features = false, features = ["renderer-femtovg", "compat-1-2"] }
 toml = "0.8"
 walkdir = "2.5"
+gstreamer-gl-egl = { version = "0.23", optional = true }
+glutin_egl_sys = { version = "0.7", optional = true }
+gstreamer-gl-x11 = { version = "0.23", optional = true }
+glutin_glx_sys = { version = "0.6", optional = true }
 
 
 [build-dependencies]
