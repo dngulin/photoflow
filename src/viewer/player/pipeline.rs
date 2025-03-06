@@ -28,7 +28,7 @@ where
         .build()?;
 
     let uri = filename_to_uri(path, None)?;
-    let pipeline = ElementFactory::make("glsink")
+    let pipeline = ElementFactory::make("playbin")
         .property("uri", uri)
         .property("video-sink", &glsink)
         .build()?
