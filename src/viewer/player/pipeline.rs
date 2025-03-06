@@ -10,21 +10,29 @@ pub fn create<F>(path: &Path, handle_new_frame: F) -> anyhow::Result<Pipeline>
 where
     F: Fn(Buffer, VideoInfo) + Send + 'static,
 {
-    let appsink = AppSink::builder()
-        .caps(
-            &VideoCapsBuilder::new()
-                .features([CAPS_FEATURE_MEMORY_GL_MEMORY])
-                .format(VideoFormat::Rgba)
-                .field("texture-target", "2D")
-                .field("pixel-aspect-ratio", Fraction::new(1, 1))
-                .build(),
-        )
-        .enable_last_sample(false)
-        .max_buffers(1u32)
+    let terminator = gstreamer::parse::bin_from_description(
+        "glvideoflip method=automatic ! appsink name=sink",
+        true,
+    )?;
+
+    let appsink = terminator
+        .by_name("sink")
+        .unwrap()
+        .downcast::<AppSink>()
+        .unwrap();
+
+    let caps = &VideoCapsBuilder::new()
+        .features([CAPS_FEATURE_MEMORY_GL_MEMORY])
+        .format(VideoFormat::Rgba)
+        .field("texture-target", "2D")
+        .field("pixel-aspect-ratio", Fraction::new(1, 1))
         .build();
+    appsink.set_caps(Some(caps));
+    appsink.set_enable_last_sample(false);
+    appsink.set_max_buffers(1u32);
 
     let glsink = ElementFactory::make("glsinkbin")
-        .property("sink", &appsink)
+        .property("sink", &terminator)
         .build()?;
 
     let uri = filename_to_uri(path, None)?;
