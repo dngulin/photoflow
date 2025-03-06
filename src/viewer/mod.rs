@@ -134,6 +134,10 @@ fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Optio
         return None;
     }
 
+    if let Some(player) = loader.player.lock().unwrap().as_mut() {
+        player.unload()
+    }
+
     let app = weak_app.upgrade()?;
     let (path, orientation) = {
         let db = loader.db.lock().ok()?;
@@ -236,6 +240,10 @@ fn set_failed_to_load_media(app: &PhotoFlowApp) {
 
 fn clear(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader) -> Option<()> {
     *loader.requested_idx.lock().ok()? = None;
+
+    if let Some(player) = loader.player.lock().unwrap().as_mut() {
+        player.unload()
+    }
 
     let app = weak_app.upgrade()?;
     let bridge = app.global::<MediaViewerBridge>();
