@@ -14,7 +14,7 @@ use slint::{
 };
 use std::path::Path;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 pub fn bind_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyhow::Result<()> {
     {
@@ -64,6 +64,10 @@ impl MediaLoader {
             None
         }
     }
+
+    pub fn player(&self) -> MutexGuard<Option<Player>> {
+        self.player.lock().unwrap()
+    }
 }
 
 pub fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
@@ -99,13 +103,11 @@ pub fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
                             app.window().request_redraw();
                         });
                     };
-                    *loader.player.lock().unwrap() = Player::new(api, request_redraw).ok();
+                    *loader.player() = Player::new(api, request_redraw).ok();
                 }
                 RenderingState::BeforeRendering => {
                     if let Some(frame) = loader
-                        .player
-                        .lock()
-                        .unwrap()
+                        .player()
                         .as_ref()
                         .and_then(|p| p.playback())
                         .and_then(|p| p.current_frame())
@@ -119,7 +121,7 @@ pub fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
                     }
                 }
                 RenderingState::RenderingTeardown => {
-                    loader.player.lock().unwrap().take();
+                    loader.player().take();
                 }
                 _ => {}
             });
@@ -209,9 +211,7 @@ fn load_media(
     }
 
     loader
-        .player
-        .lock()
-        .unwrap()
+        .player()
         .as_mut()
         .and_then(|player| player.load(path).ok())
         .map(|_| Media::Video)
@@ -240,7 +240,7 @@ fn set_failed_to_load_media(app: &PhotoFlowApp) {
 fn clear(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader) -> Option<()> {
     *loader.requested_idx.lock().ok()? = None;
 
-    if let Some(player) = loader.player.lock().unwrap().as_mut() {
+    if let Some(player) = loader.player().as_mut() {
         player.unload()
     }
 
