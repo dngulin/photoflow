@@ -102,17 +102,18 @@ pub fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
                     *loader.player.lock().unwrap() = Player::new(api, request_redraw).ok();
                 }
                 RenderingState::BeforeRendering => {
-                    if let Some(playback) = loader
+                    if let Some(frame) = loader
                         .player
                         .lock()
                         .unwrap()
                         .as_ref()
                         .and_then(|p| p.playback())
+                        .and_then(|p| p.current_frame())
                     {
                         let app = app_weak.unwrap();
                         let bridge = app.global::<MediaViewerBridge>();
                         bridge.set_model(MediaViewerModel {
-                            image: playback.current_frame(),
+                            image: frame,
                             ..bridge.get_model()
                         });
                     }
