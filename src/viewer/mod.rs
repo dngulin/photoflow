@@ -36,8 +36,6 @@ pub fn bind_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyhow::Resul
         }
     });
 
-    bind_media_loader(app, db.clone());
-
     Ok(())
 }
 
@@ -68,7 +66,7 @@ impl MediaLoader {
     }
 }
 
-fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
+pub fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
     let bridge = app.global::<MediaViewerBridge>();
     let loader = MediaLoader::new(db);
 
