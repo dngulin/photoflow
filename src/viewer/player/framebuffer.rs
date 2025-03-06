@@ -1,30 +1,47 @@
+use gstreamer::Buffer;
 use gstreamer_gl::gl_video_frame::Readable;
 use gstreamer_gl::{GLContext, GLSyncMeta, GLVideoFrame, GLVideoFrameExt};
-use gstreamer_video::VideoFrameExt;
-use std::sync::{Arc, Mutex};
+use gstreamer_video::{VideoFrameExt, VideoInfo};
 
 struct FrameData {
-    pub video_info: gstreamer_video::VideoInfo,
-    pub buffer: gstreamer::Buffer,
+    pub buffer: Buffer,
+    pub video_info: VideoInfo,
+}
+
+impl FrameData {
+    pub fn new(video_info: VideoInfo, buffer: Buffer) -> Self {
+        Self { video_info, buffer }
+    }
 }
 
 pub struct FrameBuffer {
-    next_frame_data: Arc<Mutex<Option<FrameData>>>,
-    current_frame: Mutex<Option<GLVideoFrame<Readable>>>,
+    gl_ctx: GLContext,
+    next_frame_data: Option<FrameData>,
+    current_frame: Option<GLVideoFrame<Readable>>,
 }
 
 impl FrameBuffer {
-    pub fn get_frame(&self, gl_ctx: &GLContext) -> Option<slint::Image> {
-        if let Some(data) = self.next_frame_data.lock().unwrap().take() {
-            data.buffer.meta::<GLSyncMeta>()?.wait(gl_ctx);
+    pub fn new(gl_ctx: GLContext) -> Self {
+        Self {
+            gl_ctx,
+            next_frame_data: Default::default(),
+            current_frame: Default::default(),
+        }
+    }
+
+    pub fn set_next_frame_data(&mut self, buffer: Buffer, video_info: VideoInfo) {
+        self.next_frame_data = Some(FrameData::new(video_info, buffer));
+    }
+
+    pub fn fetch_current_frame(&mut self) -> Option<slint::Image> {
+        if let Some(data) = self.next_frame_data.take() {
+            data.buffer.meta::<GLSyncMeta>()?.wait(&self.gl_ctx);
             if let Ok(frame) = GLVideoFrame::from_buffer_readable(data.buffer, &data.video_info) {
-                *self.current_frame.lock().unwrap() = Some(frame);
+                self.current_frame = Some(frame);
             }
         }
 
         self.current_frame
-            .lock()
-            .unwrap()
             .as_ref()
             .and_then(|frame| {
                 frame
@@ -40,10 +57,5 @@ impl FrameBuffer {
                 )
                 .build()
             })
-    }
-
-    pub fn clear(&self) {
-        self.next_frame_data.lock().unwrap().take();
-        self.current_frame.lock().unwrap().take();
     }
 }
