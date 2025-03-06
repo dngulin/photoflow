@@ -93,13 +93,11 @@ pub fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
             .window()
             .set_rendering_notifier(move |state, api| match state {
                 RenderingState::RenderingSetup => {
-                    let request_redraw = {
-                        let app_weak = app_weak.clone();
-                        move || {
-                            let _ = app_weak.upgrade_in_event_loop(|app| {
-                                app.window().request_redraw();
-                            });
-                        }
+                    let app_weak = app_weak.clone();
+                    let request_redraw = move || {
+                        let _ = app_weak.upgrade_in_event_loop(|app| {
+                            app.window().request_redraw();
+                        });
                     };
                     *loader.player.lock().unwrap() = Player::new(api, request_redraw).ok();
                 }
