@@ -110,7 +110,7 @@ pub fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
                         .player()
                         .as_ref()
                         .and_then(|p| p.playback())
-                        .and_then(|p| p.current_frame())
+                        .and_then(|p| p.current_frame_gl_ref())
                     {
                         let app = app_weak.unwrap();
                         let bridge = app.global::<MediaViewerBridge>();
@@ -135,10 +135,6 @@ fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Optio
         return None;
     }
 
-    if let Some(player) = loader.player.lock().unwrap().as_mut() {
-        player.unload()
-    }
-
     let app = weak_app.upgrade()?;
     let (path, orientation) = {
         let db = loader.db.lock().ok()?;
@@ -149,10 +145,21 @@ fn load(weak_app: Weak<PhotoFlowApp>, loader: &MediaLoader, idx: usize) -> Optio
 
     let bridge = app.global::<MediaViewerBridge>();
     let model = bridge.get_model();
+    let mut image = model.image;
+
+    if let Some(player) = loader.player.lock().unwrap().as_mut() {
+        if let Some(playback) = player.playback() {
+            if let Some(frame) = playback.current_frame_copy() {
+                image = frame;
+            }
+            player.unload()
+        }
+    }
+
     bridge.set_model(MediaViewerModel {
         state: ViewerState::Loading,
         file_name: file_name.into(),
-        image: model.image,
+        image,
     });
 
     let weak_app = weak_app.clone();

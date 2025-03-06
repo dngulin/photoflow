@@ -104,8 +104,12 @@ impl Playback {
         (self.request_redraw)();
     }
 
-    pub fn current_frame(&self) -> Option<Image> {
+    pub fn current_frame_gl_ref(&self) -> Option<Image> {
         self.fb.lock().unwrap().fetch_current_frame()
+    }
+
+    pub fn current_frame_copy(&self) -> Option<Image> {
+        self.fb.lock().unwrap().dl_current_frame()
     }
 
     pub fn status(&self) -> bool {

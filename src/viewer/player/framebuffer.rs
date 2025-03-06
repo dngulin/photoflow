@@ -2,6 +2,7 @@ use gstreamer::Buffer;
 use gstreamer_gl::gl_video_frame::Readable;
 use gstreamer_gl::{GLContext, GLSyncMeta, GLVideoFrame, GLVideoFrameExt};
 use gstreamer_video::{VideoFrameExt, VideoInfo};
+use slint::{Rgba8Pixel, SharedPixelBuffer};
 
 struct FrameData {
     pub buffer: Buffer,
@@ -57,5 +58,18 @@ impl FrameBuffer {
                 )
                 .build()
             })
+    }
+
+    pub fn dl_current_frame(&self) -> Option<slint::Image> {
+        let frame = self.current_frame.as_ref()?;
+        let map = frame.buffer().map_readable().ok()?;
+
+        let pb = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+            map.as_slice(),
+            frame.width(),
+            frame.height(),
+        );
+
+        Some(slint::Image::from_rgba8(pb))
     }
 }
