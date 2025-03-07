@@ -2,15 +2,15 @@ use crate::db::IndexDb;
 use crate::exif_orientation::ExifOrientation;
 use crate::image_loader;
 use crate::video_loader::{Video, VideoLoader};
-use slint::{ComponentHandle, GraphicsAPI, Image, Rgb8Pixel, SharedPixelBuffer, Weak};
+use slint::{ComponentHandle, Image, Rgb8Pixel, SharedPixelBuffer, Weak};
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 #[derive(Clone)]
 pub struct MediaLoader {
     db: Arc<Mutex<IndexDb>>,
-    requested_idx: Arc<Mutex<Option<usize>>>,
     video_loader: Arc<Mutex<Option<VideoLoader>>>,
+    requested_idx: Arc<Mutex<Option<usize>>>,
 }
 
 pub enum Media {
@@ -24,35 +24,23 @@ impl MediaLoader {
         self.db.lock().unwrap()
     }
 
-    fn requested_idx(&self) -> MutexGuard<Option<usize>> {
-        self.requested_idx.lock().unwrap()
-    }
-
     fn video_loader(&self) -> MutexGuard<Option<VideoLoader>> {
         self.video_loader.lock().unwrap()
+    }
+
+    fn requested_idx(&self) -> MutexGuard<Option<usize>> {
+        self.requested_idx.lock().unwrap()
     }
 }
 
 // Public API
 impl MediaLoader {
-    pub fn new(db: Arc<Mutex<IndexDb>>) -> Self {
+    pub fn new(db: Arc<Mutex<IndexDb>>, video_loader: Arc<Mutex<Option<VideoLoader>>>) -> Self {
         Self {
             db,
+            video_loader,
             requested_idx: Default::default(),
-            video_loader: Default::default(),
         }
-    }
-
-    pub fn setup_video_loader<F>(&self, api: &GraphicsAPI, request_redraw: F) -> anyhow::Result<()>
-    where
-        F: Fn() + Send + Sync + 'static,
-    {
-        *self.video_loader() = Some(VideoLoader::new(api, request_redraw)?);
-        Ok(())
-    }
-
-    pub fn teardown_video_loader(&self) {
-        *self.video_loader() = None;
     }
 
     pub fn cancel_loading(&self) {

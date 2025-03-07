@@ -4,6 +4,7 @@ mod playing_video;
 
 use crate::db::IndexDb;
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
+use crate::video_loader::VideoLoader;
 use crate::viewer::image_grid_model::ImageGridModel;
 use crate::viewer::media_loader::{Media, MediaLoader};
 use crate::viewer::playing_video::PlayingVideo;
@@ -31,7 +32,9 @@ pub fn bind_gallery_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyho
 
 pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
     let bridge = app.global::<MediaViewerBridge>();
-    let loader = MediaLoader::new(db);
+
+    let video_loader = Arc::new(Mutex::new(None));
+    let loader = MediaLoader::new(db, video_loader.clone());
     let playing = PlayingVideo::default();
 
     bridge.on_load({
@@ -56,14 +59,16 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
 
     app.window()
         .set_rendering_notifier({
-            let loader = loader.clone();
-            let playing = playing.clone();
             let app_weak = app.as_weak();
+            let video_loader = video_loader.clone();
+            let playing = playing.clone();
 
             move |state, api| match state {
                 RenderingState::RenderingSetup => {
                     let request_redraw = get_req_redraw_callback(&app_weak);
-                    let _ = loader.setup_video_loader(api, request_redraw);
+                    if let Ok(loader) = VideoLoader::new(api, request_redraw) {
+                        video_loader.lock().unwrap().replace(loader);
+                    }
                 }
                 RenderingState::BeforeRendering => {
                     if let Some(frame) = playing.curr_video_gl_frame() {
@@ -71,7 +76,7 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
                     }
                 }
                 RenderingState::RenderingTeardown => {
-                    loader.teardown_video_loader();
+                    video_loader.lock().unwrap().take();
                 }
                 _ => {}
             }
