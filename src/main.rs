@@ -2,7 +2,6 @@ use crate::config::Config;
 use crate::db::IndexDb;
 use crate::gamepad_input::GamepadInputListener;
 use crate::ui::{Mode, PhotoFlowApp};
-use crate::viewer::bind_media_loader;
 use crate::winit::WinitWindow;
 use slint::{ComponentHandle, Timer, TimerMode};
 use std::fs;
@@ -40,7 +39,7 @@ fn main() -> anyhow::Result<()> {
     setup_app_window(&app);
     let _gamepad_poll_timer = setup_gamepad_input(&app);
 
-    bind_media_loader(&app, db.clone());
+    viewer::bind_media_viewer(&app, db.clone());
 
     app.set_mode(Mode::PreIndexing);
     indexer::update_index_bg(
@@ -52,7 +51,7 @@ fn main() -> anyhow::Result<()> {
             app.set_mode(Mode::Indexing);
         },
         move |app| {
-            let _ = viewer::bind_models(&app, db);
+            let _ = viewer::bind_gallery_models(&app, db);
             app.set_mode(Mode::Gallery);
         },
     );

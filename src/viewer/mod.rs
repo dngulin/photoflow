@@ -12,7 +12,7 @@ use std::path::Path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-pub fn bind_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyhow::Result<()> {
+pub fn bind_gallery_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyhow::Result<()> {
     {
         let db = db.lock().map_err(|_| anyhow!("Failed to lock IndexDB"))?;
         let item_count = db.get_item_count()?;
@@ -67,7 +67,7 @@ impl PlayingVideo {
     }
 }
 
-pub fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
+pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
     let bridge = app.global::<MediaViewerBridge>();
     let loader = MediaLoader::new(db);
     let playing = PlayingVideo::default();
