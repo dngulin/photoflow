@@ -1,5 +1,4 @@
 mod image_grid_model;
-mod video_loader;
 
 use self::image_grid_model::ImageGridModel;
 
@@ -7,7 +6,7 @@ use crate::db::IndexDb;
 use crate::exif_orientation::ExifOrientation;
 use crate::image_loader;
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
-use crate::viewer::video_loader::VideoLoader;
+use crate::video_loader::VideoLoader;
 use anyhow::anyhow;
 use slint::{
     ComponentHandle, Image, RenderingState, Rgb8Pixel, SharedPixelBuffer, SharedString, Weak,
