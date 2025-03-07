@@ -25,13 +25,6 @@ pub fn bind_gallery_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyho
         image_grid_model.set_range(offset as usize, len as usize);
     });
 
-    let weak_app = app.as_weak();
-    app.on_close(move || {
-        if let Some(app) = weak_app.upgrade() {
-            let _ = app.window().hide();
-        }
-    });
-
     Ok(())
 }
 
