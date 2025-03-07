@@ -3,6 +3,7 @@ use gstreamer_gl::gl_video_frame::Readable;
 use gstreamer_gl::{GLContext, GLSyncMeta, GLVideoFrame, GLVideoFrameExt};
 use gstreamer_video::{VideoFrameExt, VideoInfo};
 use slint::{Rgba8Pixel, SharedPixelBuffer};
+use std::num::NonZeroU32;
 
 struct FrameData {
     pub buffer: Buffer,
@@ -34,33 +35,32 @@ impl FrameBuffer {
         self.next_frame_data = Some(FrameData::new(video_info, buffer));
     }
 
-    pub fn fetch_current_frame(&mut self) -> Option<slint::Image> {
-        if let Some(data) = self.next_frame_data.take() {
-            data.buffer.meta::<GLSyncMeta>()?.wait(&self.gl_ctx);
-            if let Ok(frame) = GLVideoFrame::from_buffer_readable(data.buffer, &data.video_info) {
-                self.current_frame = Some(frame);
-            }
-        }
+    pub fn fetch_next_frame_data(&mut self) -> Option<()> {
+        let data = self.next_frame_data.take()?;
 
-        self.current_frame
-            .as_ref()
-            .and_then(|frame| {
-                frame
-                    .texture_id(0)
-                    .ok()
-                    .and_then(|id| id.try_into().ok())
-                    .map(|texture| (frame, texture))
-            })
-            .map(|(frame, texture)| unsafe {
-                slint::BorrowedOpenGLTextureBuilder::new_gl_2d_rgba_texture(
-                    texture,
-                    (frame.width(), frame.height()).into(),
-                )
-                .build()
-            })
+        data.buffer.meta::<GLSyncMeta>()?.wait(&self.gl_ctx);
+        let frame = GLVideoFrame::from_buffer_readable(data.buffer, &data.video_info).ok()?;
+        self.current_frame = Some(frame);
+
+        Some(())
     }
 
-    pub fn dl_current_frame(&self) -> Option<slint::Image> {
+    pub fn current_frame_ref(&self) -> Option<slint::Image> {
+        let frame = self.current_frame.as_ref()?;
+        let tex_id = frame.texture_id(0).ok()?;
+
+        let tex = unsafe {
+            slint::BorrowedOpenGLTextureBuilder::new_gl_2d_rgba_texture(
+                NonZeroU32::try_from(tex_id).ok()?,
+                (frame.width(), frame.height()).into(),
+            )
+            .build()
+        };
+
+        Some(tex)
+    }
+
+    pub fn current_frame_copy(&self) -> Option<slint::Image> {
         let frame = self.current_frame.as_ref()?;
         let map = frame.buffer().map_readable().ok()?;
 

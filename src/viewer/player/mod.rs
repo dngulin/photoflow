@@ -105,11 +105,13 @@ impl Playback {
     }
 
     pub fn current_frame_gl_ref(&self) -> Option<Image> {
-        self.fb.lock().unwrap().fetch_current_frame()
+        let mut fb = self.fb.lock().unwrap();
+        fb.fetch_next_frame_data();
+        fb.current_frame_ref()
     }
 
     pub fn current_frame_copy(&self) -> Option<Image> {
-        self.fb.lock().unwrap().dl_current_frame()
+        self.fb.lock().unwrap().current_frame_copy()
     }
 
     pub fn status(&self) -> bool {
