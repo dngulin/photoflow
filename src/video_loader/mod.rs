@@ -18,7 +18,6 @@ mod pipeline;
 pub struct VideoLoader {
     gl_ctx: GLContext,
     request_redraw: Arc<dyn Fn() + Send + Sync + 'static>,
-    video: Option<Video>,
 }
 
 impl Drop for VideoLoader {
@@ -35,24 +34,14 @@ impl VideoLoader {
         let gl_ctx = GLContext::from_slint_graphics_api(api)?;
         Ok(Self {
             gl_ctx,
-            video: None,
             request_redraw: Arc::new(request_redraw),
         })
     }
 
-    pub fn load(&mut self, path: &Path) -> anyhow::Result<()> {
-        let playback = Video::new(path, &self.gl_ctx, self.request_redraw.clone())?;
-        playback.set_playing(true)?;
-        self.video = Some(playback);
-        Ok(())
-    }
-
-    pub fn unload(&mut self) {
-        self.video = None;
-    }
-
-    pub fn playback(&self) -> Option<&Video> {
-        self.video.as_ref()
+    pub fn load(&mut self, path: &Path) -> anyhow::Result<Video> {
+        let video = Video::new(path, &self.gl_ctx, self.request_redraw.clone())?;
+        video.set_playing(true)?;
+        Ok(video)
     }
 }
 
