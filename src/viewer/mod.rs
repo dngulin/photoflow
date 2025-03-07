@@ -1,5 +1,5 @@
 mod image_grid_model;
-mod player;
+mod video_loader;
 
 use self::image_grid_model::ImageGridModel;
 
@@ -7,7 +7,7 @@ use crate::db::IndexDb;
 use crate::exif_orientation::ExifOrientation;
 use crate::img_decoder;
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
-use crate::viewer::player::Player;
+use crate::viewer::video_loader::VideoLoader;
 use anyhow::anyhow;
 use slint::{
     ComponentHandle, Image, RenderingState, Rgb8Pixel, SharedPixelBuffer, SharedString, Weak,
@@ -43,7 +43,7 @@ pub fn bind_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyhow::Resul
 struct MediaLoader {
     db: Arc<Mutex<IndexDb>>,
     requested_idx: Arc<Mutex<Option<usize>>>,
-    player: Arc<Mutex<Option<Player>>>,
+    player: Arc<Mutex<Option<VideoLoader>>>,
 }
 
 impl MediaLoader {
@@ -65,7 +65,7 @@ impl MediaLoader {
         }
     }
 
-    pub fn player(&self) -> MutexGuard<Option<Player>> {
+    pub fn player(&self) -> MutexGuard<Option<VideoLoader>> {
         self.player.lock().unwrap()
     }
 }
@@ -103,7 +103,7 @@ pub fn bind_media_loader(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
                             app.window().request_redraw();
                         });
                     };
-                    *loader.player() = Player::new(api, request_redraw).ok();
+                    *loader.player() = VideoLoader::new(api, request_redraw).ok();
                 }
                 RenderingState::BeforeRendering => {
                     if let Some(frame) = loader

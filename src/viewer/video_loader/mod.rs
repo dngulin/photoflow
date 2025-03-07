@@ -1,9 +1,9 @@
-use crate::viewer::player::framebuffer::FrameBuffer;
-use crate::viewer::player::gst_bus_gl_sync::BusGlSync;
+use crate::viewer::video_loader::framebuffer::FrameBuffer;
+use crate::viewer::video_loader::gst_bus_gl_sync::BusGlSync;
 use anyhow::anyhow;
 use gl_context_slint::GLContextSlint;
 use gstreamer::prelude::*;
-use gstreamer::{ClockTime, Pipeline, State};
+use gstreamer::{Pipeline, State};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
 use slint::{GraphicsAPI, Image};
@@ -15,19 +15,19 @@ mod gl_context_slint;
 mod gst_bus_gl_sync;
 mod pipeline;
 
-pub struct Player {
+pub struct VideoLoader {
     gl_ctx: GLContext,
     request_redraw: Arc<dyn Fn() + Send + Sync + 'static>,
-    playback: Option<Playback>,
+    video: Option<Video>,
 }
 
-impl Drop for Player {
+impl Drop for VideoLoader {
     fn drop(&mut self) {
         let _ = self.gl_ctx.activate(false);
     }
 }
 
-impl Player {
+impl VideoLoader {
     pub fn new<F>(api: &GraphicsAPI, request_redraw: F) -> anyhow::Result<Self>
     where
         F: Fn() + Send + Sync + 'static,
@@ -35,41 +35,41 @@ impl Player {
         let gl_ctx = GLContext::from_slint_graphics_api(api)?;
         Ok(Self {
             gl_ctx,
-            playback: None,
+            video: None,
             request_redraw: Arc::new(request_redraw),
         })
     }
 
     pub fn load(&mut self, path: &Path) -> anyhow::Result<()> {
-        let playback = Playback::new(path, &self.gl_ctx, self.request_redraw.clone())?;
+        let playback = Video::new(path, &self.gl_ctx, self.request_redraw.clone())?;
         playback.set_playing(true)?;
-        self.playback = Some(playback);
+        self.video = Some(playback);
         Ok(())
     }
 
     pub fn unload(&mut self) {
-        self.playback = None;
+        self.video = None;
     }
 
-    pub fn playback(&self) -> Option<&Playback> {
-        self.playback.as_ref()
+    pub fn playback(&self) -> Option<&Video> {
+        self.video.as_ref()
     }
 }
 
-pub struct Playback {
+pub struct Video {
     pipeline: Pipeline,
     fb: Arc<Mutex<FrameBuffer>>,
     request_redraw: Arc<dyn Fn() + Send + Sync + 'static>,
 }
 
-impl Drop for Playback {
+impl Drop for Video {
     fn drop(&mut self) {
         let _ = self.pipeline.set_state(State::Null);
         self.request_redraw();
     }
 }
 
-impl Playback {
+impl Video {
     fn new(
         path: &Path,
         gl_ctx: &GLContext,
@@ -112,10 +112,6 @@ impl Playback {
 
     pub fn current_frame_copy(&self) -> Option<Image> {
         self.fb.lock().unwrap().current_frame_copy()
-    }
-
-    pub fn status(&self) -> bool {
-        self.pipeline.state(ClockTime::NONE).1 == State::Playing
     }
 
     pub fn set_playing(&self, playing: bool) -> anyhow::Result<()> {
