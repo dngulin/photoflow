@@ -1,16 +1,17 @@
 mod image_grid_model;
 mod media_loader;
+mod playing_video;
 
 use crate::db::IndexDb;
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
-use crate::video_loader::Video;
 use crate::viewer::image_grid_model::ImageGridModel;
 use crate::viewer::media_loader::{Media, MediaLoader};
+use crate::viewer::playing_video::PlayingVideo;
 use anyhow::anyhow;
 use slint::{ComponentHandle, Image, RenderingState, Weak};
 use std::path::Path;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 
 pub fn bind_gallery_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyhow::Result<()> {
     {
@@ -26,38 +27,6 @@ pub fn bind_gallery_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyho
     });
 
     Ok(())
-}
-
-#[derive(Clone, Default)]
-struct PlayingVideo(Arc<Mutex<Option<Video>>>);
-
-impl PlayingVideo {
-    fn inner(&self) -> MutexGuard<Option<Video>> {
-        self.0.lock().unwrap()
-    }
-
-    pub fn set(&self, video: Video) {
-        *self.inner() = Some(video);
-    }
-
-    pub fn curr_video_gl_frame(&self) -> Option<Image> {
-        self.inner().as_ref().and_then(|p| p.current_frame_gl_ref())
-    }
-
-    pub fn copy_current_frame_and_stop(&self) -> Option<Image> {
-        let mut inner = self.inner();
-        if let Some(video) = inner.as_ref() {
-            let opt_frame = video.current_frame_copy();
-            *inner = None;
-            return opt_frame;
-        }
-
-        None
-    }
-
-    pub fn stop(&self) {
-        *self.inner() = None;
-    }
 }
 
 pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
