@@ -65,8 +65,7 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
 
             move |state, api| match state {
                 RenderingState::RenderingSetup => {
-                    let request_redraw = get_req_redraw_callback(&app_weak);
-                    if let Ok(loader) = VideoLoader::new(api, request_redraw) {
+                    if let Ok(loader) = VideoLoader::new(app_weak.clone(), api) {
                         video_loader.lock().unwrap().replace(loader);
                     }
                 }
@@ -170,15 +169,6 @@ fn clear(
     bridge.set_model(MediaViewerModel::default());
 
     Some(())
-}
-
-fn get_req_redraw_callback(app_weak: &Weak<PhotoFlowApp>) -> impl Fn() + Send + Sync + 'static {
-    let weak_app = app_weak.clone();
-    move || {
-        let _ = weak_app.upgrade_in_event_loop(|app| {
-            app.window().request_redraw();
-        });
-    }
 }
 
 fn try_set_bridge_image(app_weak: &Weak<PhotoFlowApp>, image: Image) {

@@ -6,7 +6,7 @@ use gstreamer::prelude::*;
 use gstreamer::{Pipeline, State};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
-use slint::{GraphicsAPI, Image};
+use slint::{ComponentHandle, GraphicsAPI, Image, Weak};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
@@ -27,14 +27,20 @@ impl Drop for VideoLoader {
 }
 
 impl VideoLoader {
-    pub fn new<F>(api: &GraphicsAPI, request_redraw: F) -> anyhow::Result<Self>
-    where
-        F: Fn() + Send + Sync + 'static,
-    {
+    pub fn new<TApp: ComponentHandle + 'static>(
+        app_weak: Weak<TApp>,
+        api: &GraphicsAPI,
+    ) -> anyhow::Result<Self> {
         let gl_ctx = GLContext::from_slint_graphics_api(api)?;
+        let request_redraw = Arc::new(move || {
+            let _ = app_weak.upgrade_in_event_loop(|app| {
+                app.window().request_redraw();
+            });
+        });
+
         Ok(Self {
             gl_ctx,
-            request_redraw: Arc::new(request_redraw),
+            request_redraw,
         })
     }
 
