@@ -13,7 +13,7 @@ mod config;
 mod db;
 mod exif_orientation;
 mod gamepad_input;
-mod img_decoder;
+mod image_loader;
 mod indexer;
 mod viewer;
 mod winit;

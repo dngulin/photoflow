@@ -1,5 +1,5 @@
-use crate::img_decoder;
-use crate::img_decoder::DecodedImage;
+use crate::image_loader;
+use crate::image_loader::DecodedImage;
 use anyhow::anyhow;
 use gstreamer::prelude::{Cast, ElementExt, ElementExtManual, GstBinExt, IsA, ObjectExt};
 use gstreamer_app::{AppSink, AppSinkCallbacks};
@@ -10,7 +10,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 pub fn is_extension_supported(path: &Path) -> bool {
-    is_video(path) || img_decoder::is_extension_supported(path)
+    is_video(path) || image_loader::is_extension_supported(path)
 }
 
 fn is_video(path: &Path) -> bool {
@@ -25,7 +25,7 @@ pub fn open(path: &Path) -> anyhow::Result<DecodedImage> {
         return get_video_preview(path);
     }
 
-    img_decoder::open(path)
+    image_loader::open(path)
 }
 
 fn get_video_preview(path: &Path) -> anyhow::Result<DecodedImage> {

@@ -1,4 +1,4 @@
-mod media_decoder;
+mod media_loader;
 mod metadata;
 mod thumbnail;
 
@@ -74,7 +74,7 @@ fn collect_paths<P: AsRef<Path>>(source: P, target: &mut HashSet<PathBuf>) {
         .into_iter()
         .filter_map(|r| r.ok())
         .filter(is_not_hidden)
-        .filter(|e| media_decoder::is_extension_supported(e.path()))
+        .filter(|e| media_loader::is_extension_supported(e.path()))
         .map(|e| e.path().to_path_buf());
     target.extend(it);
 }
@@ -136,7 +136,7 @@ fn index_file<P: AsRef<Path>>(
         Some(value) => value,
     };
 
-    let image = media_decoder::open(path.as_ref())?;
+    let image = media_loader::open(path.as_ref())?;
     let thumbnail = image
         .map(|img| thumbnail::squared(&img, 470))
         .oriented(metadata.orientation);

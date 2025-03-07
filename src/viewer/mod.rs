@@ -5,7 +5,7 @@ use self::image_grid_model::ImageGridModel;
 
 use crate::db::IndexDb;
 use crate::exif_orientation::ExifOrientation;
-use crate::img_decoder;
+use crate::image_loader;
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
 use crate::viewer::video_loader::VideoLoader;
 use anyhow::anyhow;
@@ -204,8 +204,8 @@ fn load_media(
 
     let path = Path::new(&path);
 
-    if img_decoder::is_extension_supported(path) {
-        let image = img_decoder::open(Path::new(&path))
+    if image_loader::is_extension_supported(path) {
+        let image = image_loader::open(Path::new(&path))
             .map(|img| img.oriented(orientation))
             .ok()?;
         let rgb = image.into_rgb8();
