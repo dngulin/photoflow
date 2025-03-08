@@ -14,7 +14,7 @@ mod exif_orientation;
 mod gamepad_input;
 mod image_loader;
 mod indexer;
-mod video_loader;
+mod video;
 mod viewer;
 mod winit;
 

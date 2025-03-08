@@ -4,7 +4,7 @@ mod playing_video;
 
 use crate::db::IndexDb;
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
-use crate::video_loader::VideoLoader;
+use crate::video::VideoLoader;
 use crate::viewer::image_grid_model::ImageGridModel;
 use crate::viewer::media_loader::{Media, MediaLoader};
 use crate::viewer::playing_video::PlayingVideo;

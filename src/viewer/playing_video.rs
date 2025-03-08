@@ -1,4 +1,4 @@
-use crate::video_loader::Video;
+use crate::video::Video;
 use slint::Image;
 use std::sync::{Arc, Mutex, MutexGuard};
 

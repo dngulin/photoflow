@@ -1,7 +1,7 @@
 use crate::db::IndexDb;
 use crate::exif_orientation::ExifOrientation;
 use crate::image_loader;
-use crate::video_loader::{Video, VideoLoader};
+use crate::video::{Video, VideoLoader};
 use slint::{ComponentHandle, Image, Rgb8Pixel, SharedPixelBuffer, Weak};
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
