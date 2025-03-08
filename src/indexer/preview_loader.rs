@@ -1,7 +1,7 @@
 use crate::image_loader;
 use crate::image_loader::DecodedImage;
 use anyhow::anyhow;
-use gstreamer::prelude::{Cast, ElementExt, ElementExtManual, GstBinExt, IsA, ObjectExt};
+use gstreamer::prelude::{Cast, ElementExt, GstBinExt, IsA, ObjectExt};
 use gstreamer_app::{AppSink, AppSinkCallbacks};
 use gstreamer_video::{VideoCapsBuilder, VideoFormat, VideoFrameExt, VideoFrameRef, VideoInfo};
 use image::flat::NormalForm;
@@ -89,11 +89,6 @@ fn get_video_preview(path: &Path) -> anyhow::Result<DecodedImage> {
             _ => {}
         }
     }
-
-    let d = pipeline
-        .query_duration::<gstreamer::format::Time>()
-        .unwrap_or_default();
-    println!("{:?} d={}", path, d);
 
     pipeline.set_state(gstreamer::State::Null)?;
 
