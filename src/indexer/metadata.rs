@@ -1,43 +1,43 @@
 use crate::exif_orientation::ExifOrientation;
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset, Utc};
-use nom_exif::{Exif, ExifIter, ExifTag, MediaParser, MediaSource};
+use nom_exif::{Exif, ExifIter, ExifTag, MediaParser, MediaSource, TrackInfo, TrackInfoTag};
 use std::fs;
 use std::path::Path;
 use std::sync::Mutex;
 
 #[derive(Default)]
-pub struct ExifMetadata {
+pub struct MediaMetadata {
     pub datetime: Option<DateTime<FixedOffset>>,
-    pub orientation: ExifOrientation,
+    pub exif_orientation: Option<ExifOrientation>,
 }
 
-pub fn parse_exif_metadata<P: AsRef<Path>>(
+pub fn parse_metadata<P: AsRef<Path>>(
     path: P,
     mp: &Mutex<MediaParser>,
-) -> anyhow::Result<ExifMetadata> {
+) -> anyhow::Result<MediaMetadata> {
     let ms = MediaSource::file_path(path)?;
 
-    let iter: ExifIter = {
-        let mut mp = mp
-            .lock()
-            .map_err(|_| anyhow!("Failed to lock MediaParser"))?;
-        mp.parse(ms)?
-    };
+    if ms.has_exif() {
+        let iter: ExifIter = mp.lock().unwrap().parse(ms)?;
+        let exif: Exif = iter.into();
 
-    let exif: Exif = iter.into();
+        return Ok(MediaMetadata {
+            datetime: exif.get(ExifTag::CreateDate).and_then(|e| e.as_time()),
+            exif_orientation: exif
+                .get(ExifTag::Orientation)
+                .and_then(|v| v.as_u16())
+                .and_then(|i| i.try_into().ok()),
+        });
+    } else if ms.has_track() {
+        let info: TrackInfo = mp.lock().unwrap().parse(ms)?;
+        return Ok(MediaMetadata {
+            datetime: info.get(TrackInfoTag::CreateDate).and_then(|e| e.as_time()),
+            exif_orientation: None,
+        });
+    }
 
-    let metadata = ExifMetadata {
-        datetime: exif.get(ExifTag::CreateDate).and_then(|e| e.as_time()),
-        orientation: exif
-            .get(ExifTag::Orientation)
-            .and_then(|v| v.as_u16())
-            .unwrap_or_default()
-            .try_into()
-            .unwrap_or_default(),
-    };
-
-    Ok(metadata)
+    Err(anyhow!("No metadata found"))
 }
 
 pub fn get_fs_datetime(metadata: &fs::Metadata) -> anyhow::Result<DateTime<FixedOffset>> {

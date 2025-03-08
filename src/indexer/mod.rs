@@ -130,7 +130,7 @@ fn index_file<P: AsRef<Path>>(
         }
     }
 
-    let metadata = metadata::parse_exif_metadata(&path, mp).unwrap_or_default();
+    let metadata = metadata::parse_metadata(&path, mp).unwrap_or_default();
     let datetime = match metadata.datetime {
         None => metadata::get_fs_datetime(&file_meta)?,
         Some(value) => value,
@@ -139,13 +139,13 @@ fn index_file<P: AsRef<Path>>(
     let image = preview_loader::open(path.as_ref())?;
     let thumbnail = image
         .map(|img| thumbnail::squared(&img, 470))
-        .oriented(metadata.orientation);
+        .oriented(metadata.exif_orientation.unwrap_or_default());
 
     let entry = InsertionEntry {
         path: path_str,
         finfo: &finfo,
         timestamp: datetime.timestamp(),
-        orientation: metadata.orientation.into(),
+        orientation: metadata.exif_orientation.unwrap_or_default().into(),
         thumbnail: &encode_jpeg(&thumbnail)?,
     };
 
