@@ -21,7 +21,7 @@ i-slint-backend-winit = "=1.10.0"
 libheif-rs = "1.1"
 nom-exif = "2.4"
 rayon = "1.10"
-rusqlite = "0.33"
+rusqlite = "0.34"
 serde = "1.0"
 serde_derive = "1.0"
 slint = { version = "=1.10.0", default-features = false, features = ["renderer-femtovg", "compat-1-2"] }
