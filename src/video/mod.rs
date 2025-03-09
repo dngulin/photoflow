@@ -1,5 +1,5 @@
-use crate::video::framebuffer::FrameBuffer;
-use crate::video::gst_bus_gl_sync::BusGlSync;
+use self::framebuffer::FrameBuffer;
+use self::gst_bus_gl_sync::BusGlSync;
 use anyhow::anyhow;
 use gl_context_slint::GLContextSlint;
 use gstreamer::prelude::*;
