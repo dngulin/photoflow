@@ -1,6 +1,7 @@
 use crate::db::IndexDb;
 use crate::exif_orientation::ExifOrientation;
 use crate::image_loader;
+use crate::media::{Media, MediaType};
 use crate::video::{Video, VideoLoader};
 use slint::{ComponentHandle, Image, Rgb8Pixel, SharedPixelBuffer, Weak};
 use std::path::Path;
@@ -11,11 +12,6 @@ pub struct MediaLoader {
     db: Arc<Mutex<IndexDb>>,
     video_loader: Arc<Mutex<Option<VideoLoader>>>,
     requested_idx: Arc<Mutex<Option<usize>>>,
-}
-
-pub enum Media {
-    Image(Image),
-    Video(Video),
 }
 
 // Mutex lock wrappers
@@ -60,7 +56,7 @@ impl MediaLoader {
             return Err(anyhow::anyhow!("Loading is already in progress"));
         }
 
-        let (path, orientation) = self.db().get_path_and_orientation(idx)?;
+        let (path, metadata_raw) = self.db().get_path_and_metadata(idx)?;
         let app = weak_app
             .upgrade()
             .ok_or_else(|| anyhow::anyhow!("Failed to upgrade weak app"))?;
@@ -70,8 +66,7 @@ impl MediaLoader {
         rayon::spawn_fifo({
             let loader = self.clone();
             move || {
-                let orientation: ExifOrientation = orientation.try_into().unwrap_or_default();
-                let load_result = loader.load_inner(&path, orientation);
+                let load_result = loader.load_inner(&path, metadata_raw);
 
                 let _ = weak_app.upgrade_in_event_loop(move |app| {
                     let mut requested_idx = loader.requested_idx();
@@ -101,27 +96,33 @@ pub enum MediaInner {
 }
 
 impl MediaLoader {
-    fn load_inner(&self, path: &str, orientation: ExifOrientation) -> anyhow::Result<MediaInner> {
+    fn load_inner(&self, path: &str, metadata_raw: u64) -> anyhow::Result<MediaInner> {
         let path = Path::new(path);
+        let media_type = MediaType::from_path(path).ok_or(anyhow::anyhow!("Invalid media type"))?;
 
-        if image_loader::is_extension_supported(path) {
-            let image = image_loader::open(path).map(|img| img.oriented(orientation))?;
-            let rgb = image.into_rgb8();
+        match media_type {
+            MediaType::Image(img_type) => {
+                let orientation = ExifOrientation::try_from(metadata_raw).unwrap_or_default();
+                let img =
+                    image_loader::open(path, img_type).map(|img| img.oriented(orientation))?;
 
-            let buffer = SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(
-                rgb.as_raw(),
-                rgb.width(),
-                rgb.height(),
-            );
+                let rgb = img.into_rgb8();
+                let buf = SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(
+                    rgb.as_raw(),
+                    rgb.width(),
+                    rgb.height(),
+                );
 
-            return Ok(MediaInner::Image(buffer));
+                Ok(MediaInner::Image(buf))
+            }
+            MediaType::Video(_video_type) => {
+                let mut video_loader = self.video_loader();
+                let video_loader = video_loader
+                    .as_mut()
+                    .ok_or_else(|| anyhow::anyhow!("Video loader is not initialized"))?;
+
+                video_loader.load(path).map(MediaInner::Video)
+            }
         }
-
-        let mut video_loader = self.video_loader();
-        let video_loader = video_loader
-            .as_mut()
-            .ok_or_else(|| anyhow::anyhow!("Video loader is not initialized"))?;
-
-        video_loader.load(path).map(MediaInner::Video)
     }
 }

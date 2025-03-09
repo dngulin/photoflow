@@ -1,8 +1,8 @@
-mod metadata;
 mod preview_loader;
 mod thumbnail;
 
 use crate::db::{IndexDb, InsertionEntry};
+use crate::media::{MediaMetadata, MediaType};
 use crate::ui::PhotoFlowApp;
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
@@ -74,7 +74,7 @@ fn collect_paths<P: AsRef<Path>>(source: P, target: &mut HashSet<PathBuf>) {
         .into_iter()
         .filter_map(|r| r.ok())
         .filter(is_not_hidden)
-        .filter(|e| preview_loader::is_extension_supported(e.path()))
+        .filter(|e| MediaType::from_path(e.path()).is_some())
         .map(|e| e.path().to_path_buf());
     target.extend(it);
 }
@@ -130,22 +130,22 @@ fn index_file<P: AsRef<Path>>(
         }
     }
 
-    let metadata = metadata::parse_metadata(&path, mp).unwrap_or_default();
-    let datetime = match metadata.datetime {
-        None => metadata::get_fs_datetime(&file_meta)?,
-        Some(value) => value,
+    let media_type = MediaType::from_path(&path).ok_or_else(|| anyhow!("Invalid media type"))?;
+    let media_meta = {
+        let mut mp = mp.lock().unwrap();
+        MediaMetadata::parse(&path, &media_type, &mut mp)?
     };
 
-    let image = preview_loader::open(path.as_ref())?;
-    let thumbnail = image
+    let preview = preview_loader::open(&path, &media_type)?;
+    let thumbnail = preview
         .map(|img| thumbnail::squared(&img, 470))
-        .oriented(metadata.exif_orientation.unwrap_or_default());
+        .oriented(media_meta.exif_orientation().unwrap_or_default());
 
     let entry = InsertionEntry {
         path: path_str,
         finfo: &finfo,
-        timestamp: datetime.timestamp(),
-        orientation: metadata.exif_orientation.unwrap_or_default().into(),
+        timestamp: media_meta.timestamp(),
+        metadata: db_meta(&media_meta),
         thumbnail: &encode_jpeg(&thumbnail)?,
     };
 
@@ -155,6 +155,13 @@ fn index_file<P: AsRef<Path>>(
     }
 
     Ok(())
+}
+
+fn db_meta(metadata: &MediaMetadata) -> u64 {
+    match metadata {
+        MediaMetadata::Image { orientation, .. } => (*orientation).into(),
+        MediaMetadata::Video { duration_ms, .. } => *duration_ms,
+    }
 }
 
 fn get_finfo_str(m: &fs::Metadata) -> anyhow::Result<String> {

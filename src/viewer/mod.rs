@@ -3,10 +3,11 @@ mod media_loader;
 mod playing_video;
 
 use crate::db::IndexDb;
+use crate::media::Media;
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
 use crate::video::VideoLoader;
 use crate::viewer::image_grid_model::ImageGridModel;
-use crate::viewer::media_loader::{Media, MediaLoader};
+use crate::viewer::media_loader::MediaLoader;
 use crate::viewer::playing_video::PlayingVideo;
 use anyhow::anyhow;
 use slint::{ComponentHandle, Image, RenderingState, Weak};

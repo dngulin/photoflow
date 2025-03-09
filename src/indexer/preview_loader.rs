@@ -1,5 +1,6 @@
 use crate::image_loader;
 use crate::image_loader::DecodedImage;
+use crate::media::MediaType;
 use anyhow::anyhow;
 use gstreamer::prelude::{Cast, ElementExt, GstBinExt, IsA, ObjectExt};
 use gstreamer_app::{AppSink, AppSinkCallbacks};
@@ -9,26 +10,14 @@ use image::{DynamicImage, FlatSamples, RgbImage};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-pub fn is_extension_supported(path: &Path) -> bool {
-    is_video(path) || image_loader::is_extension_supported(path)
-}
-
-fn is_video(path: &Path) -> bool {
-    let supported = ["mp4", "mov"];
-    path.extension()
-        .map(move |ext| supported.iter().any(move |s| ext.eq_ignore_ascii_case(s)))
-        .unwrap_or(false)
-}
-
-pub fn open(path: &Path) -> anyhow::Result<DecodedImage> {
-    if is_video(path) {
-        return get_video_preview(path);
+pub fn open<P: AsRef<Path>>(path: P, mt: &MediaType) -> anyhow::Result<DecodedImage> {
+    match mt {
+        MediaType::Image(img_type) => image_loader::open(&path, *img_type),
+        MediaType::Video(_) => get_video_preview(&path),
     }
-
-    image_loader::open(path)
 }
 
-fn get_video_preview(path: &Path) -> anyhow::Result<DecodedImage> {
+fn get_video_preview<P: AsRef<Path>>(path: P) -> anyhow::Result<DecodedImage> {
     const GST_PIPELINE: &str =
         "filesrc name=src ! decodebin ! videoflip method=automatic ! videoconvert ! appsink name=sink";
     let pipeline = gstreamer::parse::launch(GST_PIPELINE)?
@@ -36,7 +25,7 @@ fn get_video_preview(path: &Path) -> anyhow::Result<DecodedImage> {
         .map_err(|_| anyhow!("Failed to downcast a pipeline"))?;
 
     let src = pipeline.get::<gstreamer::Element>("src")?;
-    src.set_property("location", path);
+    src.set_property("location", path.as_ref());
 
     let sink = pipeline.get::<AppSink>("sink")?;
     sink.set_property("sync", false);

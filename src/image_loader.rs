@@ -1,38 +1,31 @@
 use crate::exif_orientation::ExifOrientation;
+use crate::media::ImageType;
 use image::DynamicImage;
 use libheif_rs::{ColorSpace, HeifContext, LibHeif, Plane, RgbChroma};
 use std::cmp::Ordering;
 use std::path::Path;
 
-pub fn is_extension_supported(path: &Path) -> bool {
-    let supported = ["jpg", "jpeg", "heic"];
-    path.extension()
-        .map(move |ext| supported.iter().any(move |s| ext.eq_ignore_ascii_case(s)))
-        .unwrap_or(false)
-}
-
-pub fn open(path: &Path) -> anyhow::Result<DecodedImage> {
-    if !is_extension_supported(path) {
-        anyhow::bail!("Unsupported image format")
+pub fn open<P: AsRef<Path>>(path: P, image_type: ImageType) -> anyhow::Result<DecodedImage> {
+    match image_type {
+        ImageType::Jpeg => {
+            let image = image::open(path)?;
+            Ok(DecodedImage::WithoutTransformations(image))
+        }
+        ImageType::Heic => {
+            let image = decode_heic(path)?;
+            Ok(DecodedImage::WithTransformations(image))
+        }
     }
-
-    if is_heic(path) {
-        let image = decode_heic(path)?;
-        return Ok(DecodedImage::WithTransformations(image));
-    }
-
-    let image = image::open(path)?;
-    Ok(DecodedImage::WithoutTransformations(image))
 }
 
-fn is_heic(path: &Path) -> bool {
-    path.extension()
-        .map(move |ext| ext.eq_ignore_ascii_case("heic"))
-        .unwrap_or(false)
-}
+fn decode_heic<P: AsRef<Path>>(path: P) -> anyhow::Result<DynamicImage> {
+    let path = path
+        .as_ref()
+        .as_os_str()
+        .to_str()
+        .ok_or_else(|| anyhow::anyhow!("Failed to convert path to str"))?;
 
-fn decode_heic(path: &Path) -> anyhow::Result<DynamicImage> {
-    let read_ctx = HeifContext::read_from_file(path.as_os_str().to_str().unwrap())?;
+    let read_ctx = HeifContext::read_from_file(path)?;
     let handle = read_ctx.primary_image_handle()?;
 
     let lib_heif = LibHeif::new();
