@@ -116,9 +116,9 @@ impl MediaLoader {
                 Ok(MediaInner::Image(buf))
             }
             MediaType::Video(_video_type) => {
-                let mut video_loader = self.video_loader();
+                let video_loader = self.video_loader();
                 let video_loader = video_loader
-                    .as_mut()
+                    .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("Video loader is not initialized"))?;
 
                 video_loader.load(path).map(MediaInner::Video)

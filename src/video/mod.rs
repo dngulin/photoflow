@@ -44,7 +44,7 @@ impl VideoLoader {
         })
     }
 
-    pub fn load(&mut self, path: &Path) -> anyhow::Result<Video> {
+    pub fn load(&self, path: &Path) -> anyhow::Result<Video> {
         let video = Video::new(path, &self.gl_ctx, self.request_redraw.clone())?;
         video.set_playing(true)?;
         Ok(video)
