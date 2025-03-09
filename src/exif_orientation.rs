@@ -18,10 +18,10 @@ impl Default for ExifOrientation {
     }
 }
 
-impl TryFrom<u16> for ExifOrientation {
+impl TryFrom<u64> for ExifOrientation {
     type Error = ();
 
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
         match value {
             1 => Ok(Self::Unchanged),
             2 => Ok(Self::MirroredHorizontally),
@@ -36,7 +36,7 @@ impl TryFrom<u16> for ExifOrientation {
     }
 }
 
-impl From<ExifOrientation> for u16 {
+impl From<ExifOrientation> for u64 {
     fn from(value: ExifOrientation) -> Self {
         match value {
             ExifOrientation::Unchanged => 1,
