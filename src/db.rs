@@ -24,7 +24,7 @@ impl IndexDb {
                     path TEXT PRIMARY KEY,
                     finfo TEXT, -- file size and mtime (used for changes detection)
                     timestamp INTEGER,
-                    orientation INTEGER,
+                    metadata INTEGER, -- exif_orientation for images / duration_ms for videos
                     is_valid INTEGER,
                     thumbnail BLOB
                 )",
@@ -70,16 +70,16 @@ impl IndexDb {
         self.conn
             .execute(
                 "INSERT INTO media
-                    (path, finfo, timestamp, orientation, is_valid, thumbnail)
+                    (path, finfo, timestamp, metadata, is_valid, thumbnail)
                 VALUES
                     (?1, ?2, ?3, ?4, 1, ?5)
                 ON CONFLICT(path) DO UPDATE SET
                     finfo = excluded.finfo,
                     timestamp = excluded.timestamp,
-                    orientation = excluded.orientation,
+                    metadata = excluded.metadata,
                     is_valid = excluded.is_valid,
                     thumbnail = excluded.thumbnail",
-                (e.path, e.finfo, e.timestamp, e.orientation, e.thumbnail),
+                (e.path, e.finfo, e.timestamp, e.metadata, e.thumbnail),
             )
             .map(|_| ())
     }
@@ -92,9 +92,9 @@ impl IndexDb {
         )
     }
 
-    pub fn get_path_and_orientation(&self, index: usize) -> rusqlite::Result<(String, u16)> {
+    pub fn get_path_and_metadata(&self, index: usize) -> rusqlite::Result<(String, u64)> {
         self.conn.query_row(
-            "SELECT path, orientation FROM media WHERE rowid=(SELECT id FROM media_order WHERE rowid=?1)",
+            "SELECT path, metadata FROM media WHERE rowid=(SELECT id FROM media_order WHERE rowid=?1)",
             [index + 1],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
@@ -110,6 +110,6 @@ pub struct InsertionEntry<'a> {
     pub path: &'a str,
     pub finfo: &'a str,
     pub timestamp: i64,
-    pub orientation: u16,
+    pub metadata: u64,
     pub thumbnail: &'a [u8],
 }
