@@ -1,9 +1,10 @@
 use crate::db::IndexDb;
+use crate::media::MediaType;
 use crate::ui::ImageGridItem;
 use anyhow::anyhow;
 use image::codecs::jpeg::JpegDecoder;
 use image::ImageDecoder;
-use slint::{Image, Model, ModelNotify, ModelTracker, Rgb8Pixel, SharedPixelBuffer};
+use slint::{Image, Model, ModelNotify, ModelTracker, Rgb8Pixel, SharedPixelBuffer, SharedString};
 use std::any::Any;
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -46,13 +47,13 @@ impl Model for ImageGridModel {
         let db_index = inner.range.offset + row;
 
         let index = db_index as i32;
-        let image = inner
-            .image_buffers
-            .get(&db_index)
-            .map(|buffer| Image::from_rgb8(buffer.clone()))
-            .unwrap_or_default();
+        let entry = inner.entries.get(&db_index).cloned().unwrap_or_default();
 
-        Some(Self::Data { index, image })
+        Some(Self::Data {
+            index,
+            image: entry.image,
+            video_duration: entry.video_duration.unwrap_or_default(),
+        })
     }
 
     fn model_tracker(&self) -> &dyn ModelTracker {
@@ -68,8 +69,14 @@ struct ViewModelInner {
     db: Arc<Mutex<IndexDb>>,
     range: Range,
 
-    image_buffers: HashMap<usize, SharedPixelBuffer<Rgb8Pixel>>,
+    entries: HashMap<usize, ModelEntry>,
     decoding_buf: Vec<u8>,
+}
+
+#[derive(Default, Clone)]
+struct ModelEntry {
+    image: Image,
+    video_duration: Option<SharedString>,
 }
 
 #[derive(Default, Eq, PartialEq)]
@@ -83,7 +90,7 @@ impl ViewModelInner {
         ViewModelInner {
             db,
             range: Default::default(),
-            image_buffers: Default::default(),
+            entries: Default::default(),
             decoding_buf: Default::default(),
         }
     }
@@ -135,7 +142,7 @@ impl ViewModelInner {
         let remove_count = self.range.length;
 
         self.range = Range::default();
-        self.image_buffers.clear();
+        self.entries.clear();
 
         notify.row_removed(0, remove_count);
     }
@@ -144,7 +151,7 @@ impl ViewModelInner {
         let start_db_idx = self.range.offset + self.range.length;
 
         for i in 0..count {
-            self.load_thumbnail(start_db_idx + i);
+            self.load_entry(start_db_idx + i);
         }
 
         self.range.length += count;
@@ -155,7 +162,7 @@ impl ViewModelInner {
         let start_db_idx = self.range.offset + self.range.length - count;
 
         for i in 0..count {
-            self.image_buffers.remove(&(start_db_idx + i));
+            self.entries.remove(&(start_db_idx + i));
         }
 
         self.range.length -= count;
@@ -166,7 +173,7 @@ impl ViewModelInner {
         let start_db_idx = self.range.offset - count;
 
         for i in 0..count {
-            self.load_thumbnail(start_db_idx + i);
+            self.load_entry(start_db_idx + i);
         }
 
         self.range.offset -= count;
@@ -178,7 +185,7 @@ impl ViewModelInner {
         let start_db_idx = self.range.offset;
 
         for i in 0..count {
-            self.image_buffers.remove(&(start_db_idx + i));
+            self.entries.remove(&(start_db_idx + i));
         }
 
         self.range.offset += count;
@@ -186,10 +193,10 @@ impl ViewModelInner {
         notify.row_removed(0, count);
     }
 
-    fn load_thumbnail(&mut self, db_idx: usize) {
-        match self.get_thumbnail(db_idx) {
+    fn load_entry(&mut self, db_idx: usize) {
+        match self.get_entry(db_idx) {
             Ok(t) => {
-                self.image_buffers.insert(db_idx, t);
+                self.entries.insert(db_idx, t);
             }
             Err(e) => {
                 println!("Failed to get thumbnail for {}: {}", db_idx, e);
@@ -197,13 +204,13 @@ impl ViewModelInner {
         };
     }
 
-    fn get_thumbnail(&mut self, db_idx: usize) -> anyhow::Result<SharedPixelBuffer<Rgb8Pixel>> {
-        let encoded = {
+    fn get_entry(&mut self, db_idx: usize) -> anyhow::Result<ModelEntry> {
+        let (path, metadata, thumbnail) = {
             let db = self.db.lock().map_err(|_| anyhow!("Failed to lock DB"))?;
-            db.get_thumbnail(db_idx)?
+            db.get_path_metadata_and_thumbnail(db_idx)?
         };
 
-        let decoder = JpegDecoder::new(Cursor::new(encoded))?;
+        let decoder = JpegDecoder::new(Cursor::new(thumbnail))?;
         let (w, h) = decoder.dimensions();
         let required_len = decoder.total_bytes() as usize;
 
@@ -213,7 +220,19 @@ impl ViewModelInner {
         decoder.read_image(&mut self.decoding_buf)?;
 
         let buf = SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(&self.decoding_buf, w, h);
-        Ok(buf)
+        let image = Image::from_rgb8(buf);
+
+        let video_duration = MediaType::from_path(&path)
+            .and_then(|media_type| match media_type {
+                MediaType::Image(_) => None,
+                MediaType::Video(_) => Some(metadata),
+            })
+            .map(|duration_ms| hh_mm_ss(duration_ms).into());
+
+        Ok(ModelEntry {
+            image,
+            video_duration,
+        })
     }
 }
 
@@ -228,5 +247,20 @@ impl Range {
 
     pub fn max(&self) -> usize {
         self.offset + self.length - 1
+    }
+}
+
+fn hh_mm_ss(duration_ms: u64) -> String {
+    let seconds_total = duration_ms / 1000;
+    let minutes_total = seconds_total / 60;
+    let hours_total = minutes_total / 60;
+
+    let seconds = seconds_total % 60;
+    let minutes = minutes_total % 60;
+
+    if hours_total > 0 {
+        format!("{:02}:{:02}:{:02}", hours_total, minutes, seconds)
+    } else {
+        format!("{:02}:{:02}", minutes, seconds)
     }
 }

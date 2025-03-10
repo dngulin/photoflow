@@ -84,11 +84,14 @@ impl IndexDb {
             .map(|_| ())
     }
 
-    pub fn get_thumbnail(&self, index: usize) -> rusqlite::Result<Vec<u8>> {
+    pub fn get_path_metadata_and_thumbnail(
+        &self,
+        index: usize,
+    ) -> rusqlite::Result<(String, u64, Vec<u8>)> {
         self.conn.query_row(
-            "SELECT thumbnail FROM media WHERE rowid=(SELECT id FROM media_order WHERE rowid=?1)",
+            "SELECT path, metadata, thumbnail FROM media WHERE rowid=(SELECT id FROM media_order WHERE rowid=?1)",
             [index + 1],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
     }
 
