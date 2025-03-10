@@ -109,6 +109,10 @@ impl Video {
         self.fb.lock().unwrap().current_frame_copy()
     }
 
+    pub fn is_playing(&self) -> bool {
+        self.pipeline.state(None).1 == State::Playing
+    }
+
     pub fn set_playing(&self, playing: bool) -> anyhow::Result<()> {
         let state = if playing {
             State::Playing

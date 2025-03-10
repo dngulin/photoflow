@@ -6,7 +6,7 @@ use self::image_grid_model::ImageGridModel;
 use self::media_loader::MediaLoader;
 use self::playing_video::PlayingVideo;
 use crate::db::IndexDb;
-use crate::media::Media;
+use crate::media::{Media, MediaType};
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
 use crate::video::VideoLoader;
 use anyhow::anyhow;
@@ -55,6 +55,14 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
 
         move || {
             let _ = clear(&app_weak, &loader, &playing);
+        }
+    });
+
+    bridge.on_video_play_pause({
+        let playing = playing.clone();
+
+        move || {
+            playing.toggle_play_pause();
         }
     });
 
@@ -122,10 +130,18 @@ fn on_load_start(app: PhotoFlowApp, path: &str, playing: PlayingVideo) {
         image = frame;
     }
 
+    let is_video = MediaType::from_path(path)
+        .map(|mt| match mt {
+            MediaType::Image(_) => false,
+            MediaType::Video(_) => true,
+        })
+        .unwrap_or(false);
+
     bridge.set_model(MediaViewerModel {
         state: ViewerState::Loading,
         file_name: file_name.into(),
         image,
+        is_video,
     });
 }
 
@@ -145,6 +161,7 @@ fn on_load_finish(app: PhotoFlowApp, playing: PlayingVideo, result: anyhow::Resu
                         model.image
                     }
                 },
+                ..model
             });
         }
         Err(_) => {
@@ -152,6 +169,7 @@ fn on_load_finish(app: PhotoFlowApp, playing: PlayingVideo, result: anyhow::Resu
                 state: ViewerState::FailedToLoad,
                 file_name: model.file_name,
                 image: Image::default(),
+                ..model
             });
         }
     };

@@ -6,6 +6,8 @@ export global MediaViewerBridge {
     in property <MediaViewerModel> model;
     pure callback load(index: int);
     pure callback clear();
+
+    pure callback video-play-pause();
 }
 
 export enum Mode {
@@ -111,6 +113,10 @@ export component PhotoFlowApp inherits Window {
                 root.selected-idx -= 1;
                 MediaViewerBridge.load(root.selected-idx);
             }
+        }
+
+        video-play-pause => {
+            MediaViewerBridge.video-play-pause();
         }
 
         exit => {

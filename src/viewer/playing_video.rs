@@ -32,4 +32,11 @@ impl PlayingVideo {
     pub fn stop(&self) {
         *self.inner() = None;
     }
+
+    pub fn toggle_play_pause(&self) {
+        let inner = self.inner();
+        if let Some(video) = inner.as_ref() {
+            let _ = video.set_playing(!video.is_playing());
+        }
+    }
 }
