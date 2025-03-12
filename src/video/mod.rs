@@ -44,9 +44,7 @@ impl VideoLoader {
     }
 
     pub fn load(&self, path: &Path) -> anyhow::Result<Video> {
-        let video = Video::new(path, &self.gl_ctx, self.request_redraw.clone())?;
-        video.set_playing(false)?;
-        Ok(video)
+        Video::new(path, &self.gl_ctx, self.request_redraw.clone())
     }
 }
 
@@ -91,6 +89,8 @@ impl Video {
                 _ => BusSyncReply::Drop,
             }
         });
+
+        pipeline.set_state(State::Ready)?;
 
         Ok(Self {
             pipeline,
