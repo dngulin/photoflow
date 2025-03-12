@@ -1,9 +1,9 @@
 use self::framebuffer::FrameBuffer;
-use self::gst_bus_gl_sync::BusGlSync;
 use anyhow::anyhow;
 use gl_context_slint::GLContextSlint;
+use gstreamer::message::NeedContext;
 use gstreamer::prelude::*;
-use gstreamer::{Pipeline, State};
+use gstreamer::{BusSyncReply, Context, Element, MessageView, Object, Pipeline, State};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
 use slint::{ComponentHandle, GraphicsAPI, Image, Weak};
@@ -12,7 +12,6 @@ use std::sync::{Arc, Mutex};
 
 mod framebuffer;
 mod gl_context_slint;
-mod gst_bus_gl_sync;
 mod pipeline;
 
 pub struct VideoLoader {
@@ -76,7 +75,6 @@ impl Video {
         let handle_new_frame = {
             let fb = fb.clone();
             let request_redraw = request_redraw.clone();
-
             move |buffer, info| {
                 fb.lock().unwrap().set_next_frame_data(buffer, info);
                 request_redraw();
@@ -86,7 +84,13 @@ impl Video {
         let pipeline = pipeline::create(path, handle_new_frame)?;
 
         let bus = pipeline.bus().ok_or_else(|| anyhow!("No pipline bus"))?;
-        bus.set_gl_sync_handler(gl_ctx.clone());
+        bus.set_sync_handler({
+            let gl_ctx = gl_ctx.clone();
+            move |_bus, msg| match msg.view() {
+                MessageView::NeedContext(nc) => provide_ctx(nc, msg.src(), &gl_ctx),
+                _ => BusSyncReply::Drop,
+            }
+        });
 
         Ok(Self {
             pipeline,
@@ -122,4 +126,35 @@ impl Video {
         self.pipeline.set_state(state)?;
         Ok(())
     }
+}
+
+fn provide_ctx(msg: &NeedContext, src: Option<&Object>, gl_ctx: &GLContext) -> BusSyncReply {
+    if let Some(e) = src.and_then(|s| s.downcast_ref::<Element>()) {
+        match msg.context_type() {
+            GST_GL_DISPLAY => e.set_context(&dsp_ctx(gl_ctx)),
+            GST_GL_APP_CTX => e.set_context(&app_ctx(gl_ctx)),
+            _ => {}
+        }
+    }
+
+    BusSyncReply::Drop
+}
+
+const GST_GL_DISPLAY: &str = "gst.gl.GLDisplay";
+const GST_GL_APP_CTX: &str = "gst.gl.app_context";
+
+fn dsp_ctx(gl_ctx: &GLContext) -> Context {
+    let ctx = Context::new(GST_GL_DISPLAY, true);
+    ctx.set_gl_display(&gl_ctx.display());
+    ctx
+}
+
+fn app_ctx(gl_ctx: &GLContext) -> Context {
+    let mut ctx = Context::new(GST_GL_APP_CTX, true);
+    {
+        let ctx = ctx.get_mut().unwrap();
+        let structure = ctx.structure_mut();
+        structure.set("context", gl_ctx);
+    }
+    ctx
 }
