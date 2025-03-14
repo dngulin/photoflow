@@ -5,7 +5,8 @@ use gstreamer::glib::WeakRef;
 use gstreamer::message::NeedContext;
 use gstreamer::prelude::*;
 use gstreamer::{
-    BusSyncReply, ClockTime, Context, Element, Message, MessageView, Object, Pipeline, State,
+    BusSyncReply, ClockTime, Context, Element, Message, MessageView, Object, Pipeline, SeekFlags,
+    State,
 };
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
@@ -227,5 +228,11 @@ fn try_pause(pipeline_weak: &WeakRef<Pipeline>) -> Option<()> {
 fn pause_playing(pipeline_weak: &WeakRef<Pipeline>) -> Option<()> {
     let pipeline = pipeline_weak.upgrade()?;
     pipeline.set_state(State::Paused).ok()?;
+    pipeline
+        .seek_simple(
+            SeekFlags::FLUSH | SeekFlags::KEY_UNIT | SeekFlags::SNAP_BEFORE,
+            ClockTime::from_seconds(0),
+        )
+        .ok()?;
     Some(())
 }
