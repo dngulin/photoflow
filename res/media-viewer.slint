@@ -11,6 +11,7 @@ export struct MediaViewerModel {
     file-name: string,
     image: image,
     is-video: bool,
+    video-progress: float,
 }
 
 export component MediaViewer inherits Rectangle {
@@ -27,6 +28,7 @@ export component MediaViewer inherits Rectangle {
     callback prev();
     callback exit();
 
+    callback poll-video-state();
     callback video-play-pause();
 
     if model.state != ViewerState.FailedToLoad: Image {
@@ -34,6 +36,31 @@ export component MediaViewer inherits Rectangle {
         height: 100%;
         image-fit: contain;
         source: model.image;
+    }
+
+    private property <bool> video-active: model.is-video && model.state == ViewerState.Loaded;
+
+    if video-active: Rectangle {
+        width: parent.width;
+        height: 4px;
+        x: 0;
+        y: parent.height - self.height;
+
+        Rectangle {
+            x: 0;
+            y: 0;
+            height: parent.height;
+            width: root.model.video-progress * parent.width;
+            background: white;
+        }
+
+        Timer {
+            running: true;
+            interval: 1s / 60;
+            triggered => {
+                root.poll-video-state();
+            }
+        }
     }
 
     spinner := Image {

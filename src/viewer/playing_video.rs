@@ -39,4 +39,19 @@ impl PlayingVideo {
             let _ = video.set_playing(!video.is_playing());
         }
     }
+
+    pub fn video_state(&self) -> Option<VideoState> {
+        let inner = self.inner();
+        let video = inner.as_ref()?;
+
+        let (pos, dur) = video.pos_and_duration_ms()?;
+
+        Some(VideoState {
+            porgress: pos as f32 / dur as f32,
+        })
+    }
+}
+
+pub struct VideoState {
+    pub porgress: f32,
 }

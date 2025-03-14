@@ -42,7 +42,6 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
         let app_weak = app.as_weak();
         let loader = loader.clone();
         let playing = playing.clone();
-
         move |idx| {
             let _ = load(&app_weak, &loader, idx as usize, &playing);
         }
@@ -52,15 +51,21 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
         let app_weak = app.as_weak();
         let loader = loader.clone();
         let playing = playing.clone();
-
         move || {
-            let _ = clear(&app_weak, &loader, &playing);
+            clear(&app_weak, &loader, &playing);
+        }
+    });
+
+    bridge.on_poll_video_state({
+        let app_weak = app.as_weak();
+        let playing = playing.clone();
+        move || {
+            set_video_state(&app_weak, &playing);
         }
     });
 
     bridge.on_video_play_pause({
         let playing = playing.clone();
-
         move || {
             playing.toggle_play_pause();
         }
@@ -142,6 +147,7 @@ fn on_load_start(app: PhotoFlowApp, path: &str, playing: PlayingVideo) {
         file_name: file_name.into(),
         image,
         is_video,
+        video_progress: 0.0,
     });
 }
 
@@ -196,4 +202,19 @@ fn try_set_bridge_image(app_weak: &Weak<PhotoFlowApp>, image: Image) {
         let model = bridge.get_model();
         bridge.set_model(MediaViewerModel { image, ..model });
     }
+}
+
+fn set_video_state(weak_app: &Weak<PhotoFlowApp>, playing: &PlayingVideo) -> Option<()> {
+    let app = weak_app.upgrade()?;
+    let bridge = app.global::<MediaViewerBridge>();
+    let model = bridge.get_model();
+
+    let video_state = playing.video_state()?;
+
+    bridge.set_model(MediaViewerModel {
+        video_progress: video_state.porgress,
+        ..model
+    });
+
+    Some(())
 }

@@ -4,7 +4,9 @@ use gl_context_slint::GLContextSlint;
 use gstreamer::glib::WeakRef;
 use gstreamer::message::NeedContext;
 use gstreamer::prelude::*;
-use gstreamer::{BusSyncReply, Context, Element, Message, MessageView, Object, Pipeline, State};
+use gstreamer::{
+    BusSyncReply, ClockTime, Context, Element, Message, MessageView, Object, Pipeline, State,
+};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
 use slint::{ComponentHandle, GraphicsAPI, Image, Weak};
@@ -135,6 +137,12 @@ impl Video {
         };
         self.pipeline.set_state(state)?;
         Ok(())
+    }
+
+    pub fn pos_and_duration_ms(&self) -> Option<(u64, u64)> {
+        let pos = self.pipeline.query_position::<ClockTime>()?.mseconds();
+        let dur = self.pipeline.query_duration::<ClockTime>()?.mseconds();
+        Some((pos, dur))
     }
 }
 
