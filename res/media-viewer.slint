@@ -32,13 +32,6 @@ export component MediaViewer inherits Rectangle {
     pure callback poll-video-state();
     callback video-play-pause();
 
-    EveryFrameTimer {
-        triggered(dt) => {
-            poll-video-state();
-            spinner.tick(dt);
-        }
-    }
-
     if model.state != ViewerState.FailedToLoad: Image {
         width: 100%;
         height: 100%;
@@ -61,6 +54,12 @@ export component MediaViewer inherits Rectangle {
             width: root.model.video-progress * parent.width;
             background: white;
         }
+
+        visible: self.is-visible();
+        pure function is-visible() -> bool {
+            poll-video-state();
+            true
+        }
     }
 
     spinner := Image {
@@ -79,10 +78,18 @@ export component MediaViewer inherits Rectangle {
             spring = Spring.start(self.opacity, self.traget-opacity, spring.velocity);
         }
 
-        function tick(dt: duration) {
-            if (Spring.is-active(spring)) {
-                spring = Spring.update(spring-cfg, spring, dt / 1s);
-            }
+        pure function animation-active() -> bool {
+            Spring.is-active(spring)
+        }
+
+        function update-animation(dt: duration) {
+            spring = Spring.update(spring-cfg, spring, dt / 1s);
+        }
+    }
+
+    if spinner.animation-active(): EveryFrameTimer {
+        triggered(dt) => {
+            spinner.update-animation(dt);
         }
     }
 
