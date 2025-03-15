@@ -1,4 +1,5 @@
 import { SpringConfig, SpringState, Spring } from "spring-animation.slint";
+import { EveryFrameTimer } from "every-frame-timer.slint";
 
 export enum ViewerState {
     Loading,
@@ -31,6 +32,13 @@ export component MediaViewer inherits Rectangle {
     pure callback poll-video-state();
     callback video-play-pause();
 
+    EveryFrameTimer {
+        triggered(dt) => {
+            poll-video-state();
+            spinner.tick(dt);
+        }
+    }
+
     if model.state != ViewerState.FailedToLoad: Image {
         width: 100%;
         height: 100%;
@@ -53,12 +61,6 @@ export component MediaViewer inherits Rectangle {
             width: root.model.video-progress * parent.width;
             background: white;
         }
-
-        visible: self.is-visible();
-        pure function is-visible() -> bool {
-            poll-video-state();
-            true
-        }
     }
 
     spinner := Image {
@@ -71,23 +73,16 @@ export component MediaViewer inherits Rectangle {
         private property <SpringConfig> spring-cfg: { stiffness: 500, damping: 40, mass: 1 };
 
         opacity: spring.current-value;
+
         property <float> traget-opacity: model.state == ViewerState.Loading ? 1 : 0;
         changed traget-opacity => {
             spring = Spring.start(self.opacity, self.traget-opacity, spring.velocity);
         }
 
-        property <duration> time: animation-tick();
-        property <duration> time-prev;
-
-        init => {
-            time-prev = time;
-        }
-
-        changed time => {
+        function tick(dt: duration) {
             if (Spring.is-active(spring)) {
-                spring = Spring.update(spring-cfg, spring, (time - time-prev) / 1s);
+                spring = Spring.update(spring-cfg, spring, dt / 1s);
             }
-            time-prev = time;
         }
     }
 
