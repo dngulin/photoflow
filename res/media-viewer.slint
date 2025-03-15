@@ -28,7 +28,7 @@ export component MediaViewer inherits Rectangle {
     callback prev();
     callback exit();
 
-    callback poll-video-state();
+    pure callback poll-video-state();
     callback video-play-pause();
 
     if model.state != ViewerState.FailedToLoad: Image {
@@ -54,12 +54,10 @@ export component MediaViewer inherits Rectangle {
             background: white;
         }
 
-        Timer {
-            running: true;
-            interval: 1s / 60;
-            triggered => {
-                root.poll-video-state();
-            }
+        visible: self.is-visible();
+        pure function is-visible() -> bool {
+            poll-video-state();
+            true
         }
     }
 
