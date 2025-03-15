@@ -1,4 +1,5 @@
 import { SpringConfig, SpringState, Spring } from "spring-animation.slint";
+import { EveryFrameTimer } from "every-frame-timer.slint";
 
 export component VerticalScrollable inherits Rectangle {
     width: 100%;
@@ -11,12 +12,22 @@ export component VerticalScrollable inherits Rectangle {
     in-out property <length> viewport-x;
     in-out property <length> viewport-y;
 
-    in property <float> spring-scroll-stiffness: 700;
-    in property <float> spring-scroll-damping: 40;
-    in property <float> spring-scroll-mass: 1;
+    property <SpringState> spring;
+    property <SpringConfig> spring-cfg: { stiffness: 700, damping: 40, mass: 1 };
 
     public function set-spring-scroll-target(target: length) {
-        scroll-spring.update-target(target);
+        spring = Spring.start(root.viewport-y / 1px, target / 1px, spring.velocity);
+    }
+
+    function tick(dt: duration) {
+        spring = Spring.update(spring-cfg, spring, dt / 1s);
+        self.viewport-y = spring.current-value * 1px;
+    }
+
+    if Spring.is-active(spring): EveryFrameTimer {
+        triggered(dt) => {
+            tick(dt)
+        }
     }
 
     Rectangle {
@@ -25,26 +36,5 @@ export component VerticalScrollable inherits Rectangle {
         width: root.contents-w;
         height: root.contents-h;
         @children
-    }
-
-    scroll-spring := Timer {
-        interval: 1s / 60;
-        running: Spring.is-active(state);
-
-        property <SpringState> state;
-        property <SpringConfig> config: {
-            stiffness: root.spring-scroll-stiffness,
-            damping: root.spring-scroll-damping,
-            mass:  root.spring-scroll-mass,
-        };
-
-        function update-target(target: length) {
-            state = Spring.start(root.viewport-y / 1px, target / 1px, state.velocity);
-        }
-
-        triggered => {
-            self.state = Spring.update(config, state, self.interval / 1s);
-            root.viewport-y = state.current-value * 1px;
-        }
     }
 }
