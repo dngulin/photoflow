@@ -67,26 +67,27 @@ export component MediaViewer inherits Rectangle {
         source: @image-url("img/spinner.svg");
         rotation-angle: 360deg * mod(animation-tick(), 2s) / 2s;
 
+        private property <SpringState> spring: { current-value: traget-opacity, target-value: traget-opacity };
+        private property <SpringConfig> spring-cfg: { stiffness: 500, damping: 40, mass: 1 };
+
+        opacity: spring.current-value;
         property <float> traget-opacity: model.state == ViewerState.Loading ? 1 : 0;
         changed traget-opacity => {
-            spinner-opacity-spring.update-target();
-        }
-    }
-
-    spinner-opacity-spring := Timer {
-        interval: 1s / 60;
-        running: Spring.is-active(state);
-
-        property <SpringState> state;
-        property <SpringConfig> config: { stiffness: 500, damping: 40, mass: 1 };
-
-        function update-target() {
-            state = Spring.start(spinner.opacity, spinner.traget-opacity, state.velocity);
+            spring = Spring.start(self.opacity, self.traget-opacity, spring.velocity);
         }
 
-        triggered => {
-            state = Spring.update(config, state, self.interval / 1s);
-            spinner.opacity = state.current-value;
+        property <duration> time: animation-tick();
+        property <duration> time-prev;
+
+        init => {
+            time-prev = time;
+        }
+
+        changed time => {
+            if (Spring.is-active(spring)) {
+                spring = Spring.update(spring-cfg, spring, (time - time-prev) / 1s);
+            }
+            time-prev = time;
         }
     }
 
