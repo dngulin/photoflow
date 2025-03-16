@@ -1,6 +1,6 @@
 use gstreamer::glib::filename_to_uri;
 use gstreamer::prelude::*;
-use gstreamer::{Buffer, ElementFactory, FlowError, FlowSuccess, Fraction, Pipeline};
+use gstreamer::{Buffer, ElementFactory, FlowError, FlowSuccess, Fraction, Pipeline, Sample};
 use gstreamer_app::{AppSink, AppSinkCallbacks};
 use gstreamer_gl::{GLBaseMemory, GLSyncMeta, CAPS_FEATURE_MEMORY_GL_MEMORY};
 use gstreamer_video::{VideoCapsBuilder, VideoFormat, VideoInfo};
@@ -8,7 +8,7 @@ use std::path::Path;
 
 pub fn create<F>(path: &Path, handle_new_frame: F) -> anyhow::Result<Pipeline>
 where
-    F: Fn(Buffer, VideoInfo) + Send + 'static,
+    F: Fn(Buffer, VideoInfo) + Clone + Send + 'static,
 {
     let terminator = gstreamer::parse::bin_from_description(
         "glvideoflip method=automatic ! appsink name=sink",
@@ -43,33 +43,51 @@ where
         .downcast::<Pipeline>()
         .unwrap();
 
-    let callbacks = gl_frame_callbacks(handle_new_frame);
+    let callbacks = sample_callbacks(handle_new_frame);
     appsink.set_callbacks(callbacks);
 
     Ok(pipeline)
 }
 
-fn gl_frame_callbacks<F>(handle_new_frame: F) -> AppSinkCallbacks
+fn sample_callbacks<F>(handle_new_frame: F) -> AppSinkCallbacks
+where
+    F: Fn(Buffer, VideoInfo) + Clone + Send + 'static,
+{
+    AppSinkCallbacks::builder()
+        // pipeline is PAUSED
+        .new_preroll({
+            let handle_new_frame = handle_new_frame.clone();
+            move |appsink| {
+                let sample = appsink.pull_preroll().map_err(|_| FlowError::Flushing)?;
+                handle_sample(sample, &handle_new_frame)
+            }
+        })
+        // pipeline is PLAYING
+        .new_sample({
+            let handle_new_frame = handle_new_frame.clone();
+            move |appsink| {
+                let sample = appsink.pull_sample().map_err(|_| FlowError::Flushing)?;
+                handle_sample(sample, &handle_new_frame)
+            }
+        })
+        .build()
+}
+
+fn handle_sample<F>(sample: Sample, handle_new_frame: &F) -> Result<FlowSuccess, FlowError>
 where
     F: Fn(Buffer, VideoInfo) + Send + 'static,
 {
-    AppSinkCallbacks::builder()
-        .new_sample(move |appsink| {
-            let sample = appsink.pull_sample().map_err(|_| FlowError::Flushing)?;
+    let mut buffer = sample.buffer_owned().ok_or(FlowError::Error)?;
+    set_buffer_sync_point(&mut buffer)?;
 
-            let mut buffer = sample.buffer_owned().ok_or(FlowError::Error)?;
-            set_buffer_sync_point(&mut buffer)?;
+    let info = sample
+        .caps()
+        .and_then(|caps| VideoInfo::from_caps(caps).ok())
+        .ok_or(FlowError::NotNegotiated)?;
 
-            let info = sample
-                .caps()
-                .and_then(|caps| VideoInfo::from_caps(caps).ok())
-                .ok_or(FlowError::NotNegotiated)?;
+    handle_new_frame(buffer, info);
 
-            handle_new_frame(buffer, info);
-
-            Ok(FlowSuccess::Ok)
-        })
-        .build()
+    Ok(FlowSuccess::Ok)
 }
 
 fn set_buffer_sync_point(buffer: &mut Buffer) -> Result<(), FlowError> {

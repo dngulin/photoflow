@@ -5,8 +5,7 @@ use gstreamer::glib::WeakRef;
 use gstreamer::message::NeedContext;
 use gstreamer::prelude::*;
 use gstreamer::{
-    BusSyncReply, ClockTime, Context, Element, Message, MessageView, Object, Pipeline, SeekFlags,
-    State,
+    BusSyncReply, ClockTime, Context, Element, Message, MessageView, Object, Pipeline, State,
 };
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
@@ -65,10 +64,6 @@ impl Drop for Video {
     }
 }
 
-struct VideoAsyncState {
-    pub rolling_back: bool,
-}
-
 impl Video {
     fn new(
         path: &Path,
@@ -90,16 +85,12 @@ impl Video {
         let pipeline = pipeline::create(path, handle_new_frame)?;
 
         let bus = pipeline.bus().ok_or_else(|| anyhow!("No pipline bus"))?;
-        let async_state = Arc::new(Mutex::new(VideoAsyncState {
-            rolling_back: false,
-        }));
         bus.set_sync_handler({
             let gl_ctx = gl_ctx.clone();
             let pipeline_weak = pipeline.downgrade();
-            let async_state = async_state.clone();
             move |_bus, msg| match msg.view() {
                 MessageView::NeedContext(nc) => provide_ctx(nc, msg.src(), &gl_ctx),
-                _ => send_to_slint_event_loop(msg, &pipeline_weak, &async_state),
+                _ => send_to_slint_event_loop(msg, &pipeline_weak),
             }
         });
 
@@ -178,61 +169,23 @@ fn app_ctx(gl_ctx: &GLContext) -> Context {
     ctx
 }
 
-fn send_to_slint_event_loop(
-    msg: &Message,
-    pipeline_weak: &WeakRef<Pipeline>,
-    state: &Arc<Mutex<VideoAsyncState>>,
-) -> BusSyncReply {
+fn send_to_slint_event_loop(msg: &Message, pipeline_weak: &WeakRef<Pipeline>) -> BusSyncReply {
     let callback = {
         let msg = msg.to_owned();
         let pipeline_weak = pipeline_weak.clone();
-        let state = state.clone();
         move || {
-            process_message(&msg, &pipeline_weak, &state);
+            if let MessageView::Eos(_) = msg.view() {
+                restart_pipeline(&pipeline_weak);
+            }
         }
     };
     let _ = slint::invoke_from_event_loop(callback);
     BusSyncReply::Drop
 }
 
-fn process_message(
-    msg: &Message,
-    pipeline_weak: &WeakRef<Pipeline>,
-    state: &Arc<Mutex<VideoAsyncState>>,
-) {
-    let mut state = state.lock().unwrap();
-
-    match msg.view() {
-        MessageView::Eos(_) => {
-            if try_pause(pipeline_weak).is_some() {
-                state.rolling_back = true;
-            }
-        }
-        MessageView::AsyncDone(..) => {
-            if state.rolling_back {
-                pause_playing(pipeline_weak);
-                state.rolling_back = false;
-            }
-        }
-        _ => {}
-    }
-}
-
-fn try_pause(pipeline_weak: &WeakRef<Pipeline>) -> Option<()> {
+fn restart_pipeline(pipeline_weak: &WeakRef<Pipeline>) -> Option<()> {
     let pipeline = pipeline_weak.upgrade()?;
     pipeline.set_state(State::Ready).ok()?;
-    pipeline.set_state(State::Playing).ok()?;
-    Some(())
-}
-
-fn pause_playing(pipeline_weak: &WeakRef<Pipeline>) -> Option<()> {
-    let pipeline = pipeline_weak.upgrade()?;
     pipeline.set_state(State::Paused).ok()?;
-    pipeline
-        .seek_simple(
-            SeekFlags::FLUSH | SeekFlags::KEY_UNIT | SeekFlags::SNAP_BEFORE,
-            ClockTime::from_seconds(0),
-        )
-        .ok()?;
     Some(())
 }
