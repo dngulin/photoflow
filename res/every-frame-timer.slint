@@ -1,6 +1,8 @@
-export component EveryFrameTimer {
+component EveryFrameTimerInner {
     width: 0px;
     height: 0px;
+
+    callback triggered(dt: duration);
 
     private property <duration> time-now: animation-tick();
     private property <duration> time-pre;
@@ -9,10 +11,22 @@ export component EveryFrameTimer {
         time-pre = time-now;
     }
 
-    callback triggered(dt: duration);
-
     changed time-now => {
         triggered(time-now - time-pre);
         time-pre = time-now;
+    }
+}
+
+export component EveryFrameTimer {
+    width: 0px;
+    height: 0px;
+
+    in property <bool> active;
+    callback triggered(dt: duration);
+
+    if active: EveryFrameTimerInner {
+        triggered(dt) => {
+            parent.triggered(dt);
+        }
     }
 }
