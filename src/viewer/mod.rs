@@ -7,7 +7,7 @@ use self::media_loader::MediaLoader;
 use self::playing_video::PlayingVideo;
 use crate::db::IndexDb;
 use crate::media::{Media, MediaType};
-use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
+use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, VideoState, ViewerState};
 use crate::video::VideoLoader;
 use anyhow::anyhow;
 use slint::{ComponentHandle, Image, RenderingState, Weak};
@@ -68,6 +68,13 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
         let playing = playing.clone();
         move || {
             playing.toggle_play_pause();
+        }
+    });
+
+    bridge.on_video_seek_to_progress({
+        let playing = playing.clone();
+        move |progress| {
+            playing.seek_to_progress(progress);
         }
     });
 
@@ -147,6 +154,7 @@ fn on_load_start(app: PhotoFlowApp, path: &str, playing: PlayingVideo) {
         file_name: file_name.into(),
         image,
         is_video,
+        video_state: VideoState::Playing,
         video_progress: 0.0,
     });
 }
@@ -212,7 +220,18 @@ fn set_video_state(weak_app: &Weak<PhotoFlowApp>, playing: &PlayingVideo) -> Opt
     let video_state = playing.video_state()?;
 
     bridge.set_model(MediaViewerModel {
-        video_progress: video_state.porgress,
+        video_state: if video_state.is_seeking {
+            VideoState::Seeking
+        } else if video_state.is_playing {
+            VideoState::Playing
+        } else {
+            VideoState::Paused
+        },
+        video_progress: if video_state.is_seeking {
+            video_state.seek_target
+        } else {
+            video_state.progress
+        },
         ..model
     });
 

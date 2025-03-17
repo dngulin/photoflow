@@ -7,8 +7,9 @@ export global MediaViewerBridge {
     pure callback load(index: int);
     pure callback clear();
 
-    pure callback video-play-pause();
     pure callback poll-video-state();
+    pure callback video-play-pause();
+    pure callback video-seek-to-progress(progress: float);
 }
 
 export enum Mode {
@@ -122,6 +123,10 @@ export component PhotoFlowApp inherits Window {
 
         video-play-pause => {
             MediaViewerBridge.video-play-pause();
+        }
+
+        video-seek-to-progress(progress) => {
+            MediaViewerBridge.video-seek-to-progress(progress);
         }
 
         exit => {

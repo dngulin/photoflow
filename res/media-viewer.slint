@@ -7,11 +7,18 @@ export enum ViewerState {
     FailedToLoad
 }
 
+export enum VideoState {
+    Paused,
+    Playing,
+    Seeking
+}
+
 export struct MediaViewerModel {
     state: ViewerState,
     file-name: string,
     image: image,
     is-video: bool,
+    video-state: VideoState,
     video-progress: float,
 }
 
@@ -31,6 +38,7 @@ export component MediaViewer inherits Rectangle {
 
     pure callback poll-video-state();
     callback video-play-pause();
+    callback video-seek-to-progress(progress: float);
 
     if model.state != ViewerState.FailedToLoad: Image {
         width: 100%;
@@ -47,11 +55,13 @@ export component MediaViewer inherits Rectangle {
         x: 0;
         y: parent.height - self.height;
 
+        private property <float> progress: model.video-progress;
+
         Rectangle {
             x: 0;
             y: 0;
             height: parent.height;
-            width: root.model.video-progress * parent.width;
+            width: progress * parent.width;
             background: white;
         }
 
@@ -114,8 +124,13 @@ export component MediaViewer inherits Rectangle {
                 }
                 accept
             } else if (event.text == Key.Return) {
-                if (!event.repeat && model.state == ViewerState.Loaded && model.is-video) {
+                if (video-active && !event.repeat) {
                     video-play-pause();
+                }
+                accept
+            } else if (event.text == Key.Home || event.text == Key.End) {
+                if (video-active && !event.repeat) {
+                    seeking.start(event.text == Key.Home ? -0.1 : 0.1);
                 }
                 accept
             } else if (event.text == Key.Escape) {
@@ -123,6 +138,36 @@ export component MediaViewer inherits Rectangle {
                 accept
             }
             reject
+        }
+
+        key-released(event) => {
+            if (!self.enabled) {
+                reject
+            }
+            if (event.text == Key.Home || event.text == Key.End) {
+                seeking.finish();
+                accept
+            }
+            reject
+        }
+    }
+
+    seeking := EveryFrameTimer {
+        active: false;
+
+        private property <float> velocity; // progress per second
+
+        public function start(velocity: float) {
+            self.velocity = velocity;
+            self.active = true;
+        }
+
+        public function finish() {
+            self.active = false;
+        }
+
+        triggered(dt) => {
+            video-seek-to-progress(model.video-progress + (dt / 1s) * velocity);
         }
     }
 }

@@ -46,12 +46,31 @@ impl PlayingVideo {
 
         let (pos, dur) = video.pos_and_duration_ms()?;
 
+        let (is_seeking, seek_target) = if let Some(seek_target) = video.seek_target() {
+            (true, seek_target)
+        } else {
+            (false, 0.0)
+        };
+
         Some(VideoState {
-            porgress: pos as f32 / dur as f32,
+            is_playing: video.is_playing(),
+            progress: pos as f32 / dur as f32,
+            is_seeking,
+            seek_target,
         })
+    }
+
+    pub fn seek_to_progress(&self, progress: f32) {
+        let inner = self.inner();
+        if let Some(video) = inner.as_ref() {
+            video.seek(progress, false);
+        }
     }
 }
 
 pub struct VideoState {
-    pub porgress: f32,
+    pub is_playing: bool,
+    pub progress: f32,
+    pub is_seeking: bool,
+    pub seek_target: f32,
 }

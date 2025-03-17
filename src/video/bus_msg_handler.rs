@@ -1,14 +1,24 @@
+use super::SeekState;
 use gstreamer::glib::WeakRef;
 use gstreamer::message::NeedContext;
 use gstreamer::prelude::*;
-use gstreamer::{BusSyncReply, Context, Element, Message, MessageView, Object, Pipeline, State};
+use gstreamer::{
+    BusSyncReply, ClockTime, Context, Element, Message, MessageView, Object, Pipeline, SeekFlags,
+    State,
+};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
+use std::sync::{Arc, Mutex};
 
-pub fn invoke(msg: &Message, gl_ctx: &GLContext, pipeline: &WeakRef<Pipeline>) -> BusSyncReply {
+pub fn invoke(
+    msg: &Message,
+    gl_ctx: &GLContext,
+    pipeline: &WeakRef<Pipeline>,
+    seek_state: &Arc<Mutex<SeekState>>,
+) -> BusSyncReply {
     match msg.view() {
         MessageView::NeedContext(nc) => provide_ctx(nc, msg.src(), gl_ctx),
-        _ => send_to_slint_event_loop(msg, pipeline),
+        _ => send_to_slint_event_loop(msg, pipeline, seek_state),
     }
 }
 
@@ -43,14 +53,24 @@ fn app_ctx(gl_ctx: &GLContext) -> Context {
     ctx
 }
 
-fn send_to_slint_event_loop(msg: &Message, pipeline: &WeakRef<Pipeline>) -> BusSyncReply {
+fn send_to_slint_event_loop(
+    msg: &Message,
+    pipeline: &WeakRef<Pipeline>,
+    seek_state: &Arc<Mutex<SeekState>>,
+) -> BusSyncReply {
     let callback = {
         let msg = msg.to_owned();
         let pipeline = pipeline.clone();
-        move || {
-            if let MessageView::Eos(_) = msg.view() {
+        let seek_state = seek_state.clone();
+        move || match msg.view() {
+            MessageView::Eos(_) => {
+                seek_state.lock().unwrap().reset();
                 restart_pipeline(&pipeline);
             }
+            MessageView::AsyncDone(_) => {
+                finish_seeking(&pipeline, &seek_state);
+            }
+            _ => {}
         }
     };
     let _ = slint::invoke_from_event_loop(callback);
@@ -61,5 +81,25 @@ fn restart_pipeline(pipeline: &WeakRef<Pipeline>) -> Option<()> {
     let pipeline = pipeline.upgrade()?;
     pipeline.set_state(State::Ready).ok()?;
     pipeline.set_state(State::Paused).ok()?;
+    Some(())
+}
+
+fn finish_seeking(pipeline: &WeakRef<Pipeline>, seek_state: &Arc<Mutex<SeekState>>) -> Option<()> {
+    let pipeline = pipeline.upgrade()?;
+
+    let mut seek_state = seek_state.lock().unwrap();
+    if seek_state.current.is_some() {
+        seek_state.current = seek_state.pending.take();
+    }
+
+    seek_state.pending = None;
+
+    if let Some(progress) = seek_state.current {
+        let dur = pipeline.query_duration::<ClockTime>()?.seconds_f32();
+        let flags = SeekFlags::FLUSH | SeekFlags::ACCURATE;
+        let pos = ClockTime::from_seconds_f32((dur * progress).clamp(0.0, dur));
+        pipeline.seek_simple(flags, pos).ok()?;
+    }
+
     Some(())
 }
