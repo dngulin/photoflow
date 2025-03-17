@@ -1,18 +1,15 @@
 use self::framebuffer::FrameBuffer;
 use anyhow::anyhow;
 use gl_context_slint::GLContextSlint;
-use gstreamer::glib::WeakRef;
-use gstreamer::message::NeedContext;
 use gstreamer::prelude::*;
-use gstreamer::{
-    BusSyncReply, ClockTime, Context, Element, Message, MessageView, Object, Pipeline, State,
-};
+use gstreamer::{ClockTime, Pipeline, State};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
 use slint::{ComponentHandle, GraphicsAPI, Image, Weak};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
+mod bus_msg_handler;
 mod framebuffer;
 mod gl_context_slint;
 mod pipeline;
@@ -87,11 +84,8 @@ impl Video {
         let bus = pipeline.bus().ok_or_else(|| anyhow!("No pipline bus"))?;
         bus.set_sync_handler({
             let gl_ctx = gl_ctx.clone();
-            let pipeline_weak = pipeline.downgrade();
-            move |_bus, msg| match msg.view() {
-                MessageView::NeedContext(nc) => provide_ctx(nc, msg.src(), &gl_ctx),
-                _ => send_to_slint_event_loop(msg, &pipeline_weak),
-            }
+            let pipeline = pipeline.downgrade();
+            move |_bus, msg| bus_msg_handler::invoke(msg, &gl_ctx, &pipeline)
         });
 
         pipeline.set_state(State::Ready)?;
@@ -136,56 +130,4 @@ impl Video {
         let dur = self.pipeline.query_duration::<ClockTime>()?.mseconds();
         Some((pos, dur))
     }
-}
-
-fn provide_ctx(msg: &NeedContext, src: Option<&Object>, gl_ctx: &GLContext) -> BusSyncReply {
-    if let Some(e) = src.and_then(|s| s.downcast_ref::<Element>()) {
-        match msg.context_type() {
-            GST_GL_DISPLAY => e.set_context(&dsp_ctx(gl_ctx)),
-            GST_GL_APP_CTX => e.set_context(&app_ctx(gl_ctx)),
-            _ => {}
-        }
-    }
-
-    BusSyncReply::Drop
-}
-
-const GST_GL_DISPLAY: &str = "gst.gl.GLDisplay";
-const GST_GL_APP_CTX: &str = "gst.gl.app_context";
-
-fn dsp_ctx(gl_ctx: &GLContext) -> Context {
-    let ctx = Context::new(GST_GL_DISPLAY, true);
-    ctx.set_gl_display(&gl_ctx.display());
-    ctx
-}
-
-fn app_ctx(gl_ctx: &GLContext) -> Context {
-    let mut ctx = Context::new(GST_GL_APP_CTX, true);
-    {
-        let ctx = ctx.get_mut().unwrap();
-        let structure = ctx.structure_mut();
-        structure.set("context", gl_ctx);
-    }
-    ctx
-}
-
-fn send_to_slint_event_loop(msg: &Message, pipeline_weak: &WeakRef<Pipeline>) -> BusSyncReply {
-    let callback = {
-        let msg = msg.to_owned();
-        let pipeline_weak = pipeline_weak.clone();
-        move || {
-            if let MessageView::Eos(_) = msg.view() {
-                restart_pipeline(&pipeline_weak);
-            }
-        }
-    };
-    let _ = slint::invoke_from_event_loop(callback);
-    BusSyncReply::Drop
-}
-
-fn restart_pipeline(pipeline_weak: &WeakRef<Pipeline>) -> Option<()> {
-    let pipeline = pipeline_weak.upgrade()?;
-    pipeline.set_state(State::Ready).ok()?;
-    pipeline.set_state(State::Paused).ok()?;
-    Some(())
 }
