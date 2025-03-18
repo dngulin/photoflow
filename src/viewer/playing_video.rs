@@ -61,7 +61,7 @@ impl PlayingVideo {
         })
     }
 
-    pub fn seek_to_progress(&self, progress: f32) {
+    pub fn seek_progress(&self, progress: f32) {
         let inner = self.inner();
         if let Some(video) = inner.as_ref() {
             video.seek(progress, SeekMode::Buffered);

@@ -38,7 +38,7 @@ export component MediaViewer inherits Rectangle {
 
     pure callback poll-video-state();
     callback video-play-pause();
-    callback video-seek-to-progress(progress: float);
+    callback video-seek-progress(progress: float);
 
     if model.state != ViewerState.FailedToLoad: Image {
         width: 100%;
@@ -167,7 +167,7 @@ export component MediaViewer inherits Rectangle {
         }
 
         triggered(dt) => {
-            video-seek-to-progress(model.video-progress + (dt / 1s) * velocity);
+            video-seek-progress(model.video-progress + (dt / 1s) * velocity);
         }
     }
 }

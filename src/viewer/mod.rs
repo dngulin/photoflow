@@ -71,10 +71,10 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
         }
     });
 
-    bridge.on_video_seek_to_progress({
+    bridge.on_video_seek_progress({
         let playing = playing.clone();
         move |progress| {
-            playing.seek_to_progress(progress);
+            playing.seek_progress(progress);
         }
     });
 
