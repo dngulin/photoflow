@@ -44,7 +44,8 @@ impl PlayingVideo {
         let inner = self.inner();
         let video = inner.as_ref()?;
 
-        let (pos, dur) = video.pos_and_duration_ms()?;
+        let is_playing = video.is_playing();
+        let progress = video.progress()?;
 
         let (is_seeking, seek_target) = if let Some(seek_target) = video.seek_target() {
             (true, seek_target)
@@ -53,8 +54,8 @@ impl PlayingVideo {
         };
 
         Some(VideoState {
-            is_playing: video.is_playing(),
-            progress: pos as f32 / dur as f32,
+            is_playing,
+            progress,
             is_seeking,
             seek_target,
         })

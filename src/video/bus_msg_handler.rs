@@ -1,11 +1,9 @@
+use super::pipeline_ext::PipelineExt;
 use super::SeekState;
 use gstreamer::glib::WeakRef;
 use gstreamer::message::NeedContext;
 use gstreamer::prelude::*;
-use gstreamer::{
-    BusSyncReply, ClockTime, Context, Element, Message, MessageView, Object, Pipeline, SeekFlags,
-    State,
-};
+use gstreamer::{BusSyncReply, Context, Element, Message, MessageView, Object, Pipeline, State};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
 use std::sync::{Arc, Mutex};
@@ -95,10 +93,7 @@ fn finish_seeking(pipeline: &WeakRef<Pipeline>, seek_state: &Arc<Mutex<SeekState
     seek_state.pending = None;
 
     if let Some(progress) = seek_state.current {
-        let dur = pipeline.query_duration::<ClockTime>()?.seconds_f32();
-        let flags = SeekFlags::FLUSH | SeekFlags::ACCURATE;
-        let pos = ClockTime::from_seconds_f32((dur * progress).clamp(0.0, dur));
-        pipeline.seek_simple(flags, pos).ok()?;
+        pipeline.seek_progress(progress).ok()?;
     }
 
     Some(())

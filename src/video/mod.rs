@@ -1,8 +1,9 @@
 use self::framebuffer::FrameBuffer;
+use self::pipeline_ext::PipelineExt;
 use anyhow::anyhow;
 use gl_context_slint::GLContextSlint;
 use gstreamer::prelude::*;
-use gstreamer::{ClockTime, Pipeline, SeekFlags, State};
+use gstreamer::{Pipeline, State};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
 use slint::{ComponentHandle, GraphicsAPI, Image, Weak};
@@ -13,6 +14,7 @@ mod bus_msg_handler;
 mod framebuffer;
 mod gl_context_slint;
 mod pipeline;
+mod pipeline_ext;
 
 pub struct VideoLoader {
     gl_ctx: GLContext,
@@ -131,10 +133,8 @@ impl Video {
         Ok(())
     }
 
-    pub fn pos_and_duration_ms(&self) -> Option<(u64, u64)> {
-        let pos = self.pipeline.query_position::<ClockTime>()?.mseconds();
-        let dur = self.pipeline.query_duration::<ClockTime>()?.mseconds();
-        Some((pos, dur))
+    pub fn progress(&self) -> Option<f32> {
+        self.pipeline.progress().ok()
     }
 
     pub fn seek_target(&self) -> Option<f32> {
@@ -154,12 +154,7 @@ impl Video {
             return Some(());
         }
 
-        let dur = self.pipeline.query_duration::<ClockTime>()?.seconds_f32();
-
-        let flags = SeekFlags::FLUSH | SeekFlags::ACCURATE;
-        let pos = ClockTime::from_seconds_f32((dur * progress).clamp(0.0, dur));
-
-        if self.pipeline.seek_simple(flags, pos).is_ok() {
+        if self.pipeline.seek_progress(progress).is_ok() {
             seek_state.current = Some(progress);
             seek_state.pending = None;
         }
