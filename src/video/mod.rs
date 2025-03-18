@@ -137,11 +137,6 @@ impl Video {
         self.pipeline.progress().ok()
     }
 
-    pub fn seek_target(&self) -> Option<f32> {
-        let seek_state = self.seek_state.lock().unwrap();
-        seek_state.pending.or(seek_state.current)
-    }
-
     pub fn seek(&self, progress: f32, mode: SeekMode) -> Option<()> {
         let mut seek_state = self.seek_state.lock().unwrap();
 

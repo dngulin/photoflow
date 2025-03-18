@@ -7,18 +7,12 @@ export enum ViewerState {
     FailedToLoad
 }
 
-export enum VideoState {
-    Paused,
-    Playing,
-    Seeking
-}
-
 export struct MediaViewerModel {
     state: ViewerState,
     file-name: string,
     image: image,
     is-video: bool,
-    video-state: VideoState,
+    video-is-playing: bool,
     video-progress: float,
 }
 
@@ -55,7 +49,7 @@ export component MediaViewer inherits Rectangle {
         x: 0;
         y: parent.height - self.height;
 
-        private property <float> progress: model.video-progress;
+        private property <float> progress: seeking.active ? seeking.target : model.video-progress;
 
         Rectangle {
             x: 0;
@@ -156,10 +150,12 @@ export component MediaViewer inherits Rectangle {
         active: false;
 
         private property <float> velocity; // progress per second
+        out property <float> target;
 
         public function start(velocity: float) {
             self.velocity = velocity;
             self.active = true;
+            self.target = model.video-progress;
         }
 
         public function finish() {
@@ -167,7 +163,8 @@ export component MediaViewer inherits Rectangle {
         }
 
         triggered(dt) => {
-            video-seek-progress(model.video-progress + (dt / 1s) * velocity);
+            self.target = clamp(self.target + (dt / 1s) * velocity, 0,1);
+            video-seek-progress(self.target);
         }
     }
 }

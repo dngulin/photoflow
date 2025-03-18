@@ -47,17 +47,9 @@ impl PlayingVideo {
         let is_playing = video.is_playing();
         let progress = video.progress()?;
 
-        let (is_seeking, seek_target) = if let Some(seek_target) = video.seek_target() {
-            (true, seek_target)
-        } else {
-            (false, 0.0)
-        };
-
         Some(VideoState {
             is_playing,
             progress,
-            is_seeking,
-            seek_target,
         })
     }
 
@@ -72,6 +64,4 @@ impl PlayingVideo {
 pub struct VideoState {
     pub is_playing: bool,
     pub progress: f32,
-    pub is_seeking: bool,
-    pub seek_target: f32,
 }
