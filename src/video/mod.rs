@@ -53,7 +53,7 @@ impl VideoLoader {
 pub struct Video {
     pipeline: Pipeline,
     fb: Arc<Mutex<FrameBuffer>>,
-    seek_state: Arc<Mutex<SeekState>>,
+    seek_state: Arc<Mutex<SeekRequestBuffer>>,
     request_redraw: Arc<dyn Fn() + Send + Sync + 'static>,
 }
 
@@ -83,7 +83,7 @@ impl Video {
         };
 
         let pipeline = pipeline::create(path, handle_new_frame)?;
-        let seek_state = Arc::new(Mutex::new(SeekState::default()));
+        let seek_state = Arc::new(Mutex::new(SeekRequestBuffer::default()));
 
         let bus = pipeline.bus().ok_or_else(|| anyhow!("No pipline bus"))?;
         bus.set_sync_handler({
@@ -142,10 +142,10 @@ impl Video {
         seek_state.pending.or(seek_state.current)
     }
 
-    pub fn seek(&self, progress: f32, now: bool) -> Option<()> {
+    pub fn seek(&self, progress: f32, mode: SeekMode) -> Option<()> {
         let mut seek_state = self.seek_state.lock().unwrap();
 
-        if now {
+        if mode == SeekMode::Instant {
             seek_state.reset();
         }
 
@@ -163,13 +163,23 @@ impl Video {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SeekMode {
+    /// Cancels the active or pending seek requests and starts a new one
+    Instant,
+    /// Postpones the request if there is an active seek in progress.
+    /// Helps to amortize frequent seek requests (e.g. from the progress slider)
+    /// and produce more intermediate frames
+    Buffered,
+}
+
 #[derive(Default)]
-struct SeekState {
+struct SeekRequestBuffer {
     pub current: Option<f32>,
     pub pending: Option<f32>,
 }
 
-impl SeekState {
+impl SeekRequestBuffer {
     fn reset(&mut self) {
         self.pending = None;
         self.current = None;

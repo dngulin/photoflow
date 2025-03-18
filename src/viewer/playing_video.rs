@@ -1,4 +1,4 @@
-use crate::video::Video;
+use crate::video::{SeekMode, Video};
 use slint::Image;
 use std::sync::{Arc, Mutex, MutexGuard};
 
@@ -64,7 +64,7 @@ impl PlayingVideo {
     pub fn seek_to_progress(&self, progress: f32) {
         let inner = self.inner();
         if let Some(video) = inner.as_ref() {
-            video.seek(progress, false);
+            video.seek(progress, SeekMode::Buffered);
         }
     }
 }

@@ -1,5 +1,5 @@
 use super::pipeline_ext::PipelineExt;
-use super::SeekState;
+use super::SeekRequestBuffer;
 use gstreamer::glib::WeakRef;
 use gstreamer::message::NeedContext;
 use gstreamer::prelude::*;
@@ -12,7 +12,7 @@ pub fn invoke(
     msg: &Message,
     gl_ctx: &GLContext,
     pipeline: &WeakRef<Pipeline>,
-    seek_state: &Arc<Mutex<SeekState>>,
+    seek_state: &Arc<Mutex<SeekRequestBuffer>>,
 ) -> BusSyncReply {
     match msg.view() {
         MessageView::NeedContext(nc) => provide_ctx(nc, msg.src(), gl_ctx),
@@ -54,7 +54,7 @@ fn app_ctx(gl_ctx: &GLContext) -> Context {
 fn send_to_slint_event_loop(
     msg: &Message,
     pipeline: &WeakRef<Pipeline>,
-    seek_state: &Arc<Mutex<SeekState>>,
+    seek_state: &Arc<Mutex<SeekRequestBuffer>>,
 ) -> BusSyncReply {
     let callback = {
         let msg = msg.to_owned();
@@ -82,7 +82,10 @@ fn restart_pipeline(pipeline: &WeakRef<Pipeline>) -> Option<()> {
     Some(())
 }
 
-fn finish_seeking(pipeline: &WeakRef<Pipeline>, seek_state: &Arc<Mutex<SeekState>>) -> Option<()> {
+fn finish_seeking(
+    pipeline: &WeakRef<Pipeline>,
+    seek_state: &Arc<Mutex<SeekRequestBuffer>>,
+) -> Option<()> {
     let pipeline = pipeline.upgrade()?;
 
     let mut seek_state = seek_state.lock().unwrap();
