@@ -16,6 +16,11 @@ export struct MediaViewerModel {
     video-progress: float,
 }
 
+enum SeekDirection {
+    Backward,
+    Forward
+}
+
 export component MediaViewer inherits Rectangle {
     width: 100%;
     height: 100%;
@@ -124,7 +129,7 @@ export component MediaViewer inherits Rectangle {
                 accept
             } else if (event.text == Key.Home || event.text == Key.End) {
                 if (video-active && !event.repeat) {
-                    seeking.start(event.text == Key.Home ? -0.1 : 0.1);
+                    seeking.start(event.text == Key.Home ? SeekDirection.Backward : SeekDirection.Forward);
                 }
                 accept
             } else if (event.text == Key.Escape) {
@@ -139,7 +144,7 @@ export component MediaViewer inherits Rectangle {
                 reject
             }
             if (event.text == Key.Home || event.text == Key.End) {
-                seeking.finish();
+                seeking.try-finish(event.text == Key.Home ? SeekDirection.Backward : SeekDirection.Forward);
                 accept
             }
             reject
@@ -149,12 +154,12 @@ export component MediaViewer inherits Rectangle {
     seeking := EveryFrameTimer {
         active: false;
 
-        private property <float> velocity; // progress per second
+        private property <SeekDirection> direction;
         private property <bool> was-playing;
         out property <float> target;
 
-        public function start(velocity: float) {
-            self.velocity = velocity;
+        public function start(direction: SeekDirection) {
+            self.direction = direction;
             self.active = true;
             self.target = model.video-progress;
 
@@ -172,8 +177,22 @@ export component MediaViewer inherits Rectangle {
             }
         }
 
+        public function try-finish(direction: SeekDirection) {
+            if (direction == self.direction) {
+                self.finish();
+            }
+        }
+
+        pure function velocity() -> float {
+            self.direction == SeekDirection.Forward ? 0.1 : -0.1;
+        }
+
+        pure function progress-delta(dt: duration) -> float {
+            (dt / 1s) * self.velocity()
+        }
+
         triggered(dt) => {
-            self.target = clamp(self.target + (dt / 1s) * velocity, 0,1);
+            self.target = clamp(self.target + self.progress-delta(dt), 0, 1);
             video-seek-progress(self.target);
         }
     }
