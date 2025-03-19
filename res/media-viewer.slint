@@ -47,6 +47,9 @@ export component MediaViewer inherits Rectangle {
     }
 
     private property <bool> video-active: model.is-video && model.state == ViewerState.Loaded;
+    changed video-active => {
+        seeking.active = false;
+    }
 
     if video-active: Rectangle {
         width: parent.width;
@@ -171,7 +174,6 @@ export component MediaViewer inherits Rectangle {
 
         public function finish() {
             self.active = false;
-
             if (self.was-playing) {
                 video-set-playing(true);
             }
