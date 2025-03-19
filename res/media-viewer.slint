@@ -118,7 +118,7 @@ export component MediaViewer inherits Rectangle {
                 }
                 accept
             } else if (event.text == Key.Return) {
-                if (video-active && !event.repeat) {
+                if (video-active && !seeking.active && !event.repeat) {
                     video-set-playing(!model.video-is-playing);
                 }
                 accept
