@@ -31,7 +31,7 @@ export component MediaViewer inherits Rectangle {
     callback exit();
 
     pure callback poll-video-state();
-    callback video-play-pause();
+    callback video-set-playing(playing-state: bool);
     callback video-seek-progress(progress: float);
 
     if model.state != ViewerState.FailedToLoad: Image {
@@ -119,7 +119,7 @@ export component MediaViewer inherits Rectangle {
                 accept
             } else if (event.text == Key.Return) {
                 if (video-active && !event.repeat) {
-                    video-play-pause();
+                    video-set-playing(!model.video-is-playing);
                 }
                 accept
             } else if (event.text == Key.Home || event.text == Key.End) {
@@ -150,16 +150,26 @@ export component MediaViewer inherits Rectangle {
         active: false;
 
         private property <float> velocity; // progress per second
+        private property <bool> was-playing;
         out property <float> target;
 
         public function start(velocity: float) {
             self.velocity = velocity;
             self.active = true;
             self.target = model.video-progress;
+
+            self.was-playing = model.video-is-playing;
+            if (model.video-is-playing) {
+                video-set-playing(false);
+            }
         }
 
         public function finish() {
             self.active = false;
+
+            if (self.was-playing) {
+                video-set-playing(true);
+            }
         }
 
         triggered(dt) => {

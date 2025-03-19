@@ -3,9 +3,9 @@ use slint::Image;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 #[derive(Clone, Default)]
-pub struct PlayingVideo(Arc<Mutex<Option<Video>>>);
+pub struct CurrentVideo(Arc<Mutex<Option<Video>>>);
 
-impl PlayingVideo {
+impl CurrentVideo {
     fn inner(&self) -> MutexGuard<Option<Video>> {
         self.0.lock().unwrap()
     }
@@ -33,14 +33,14 @@ impl PlayingVideo {
         *self.inner() = None;
     }
 
-    pub fn toggle_play_pause(&self) {
+    pub fn set_playing(&self, playing_state: bool) {
         let inner = self.inner();
         if let Some(video) = inner.as_ref() {
-            let _ = video.set_playing(!video.is_playing());
+            let _ = video.set_playing(playing_state);
         }
     }
 
-    pub fn video_state(&self) -> Option<VideoState> {
+    pub fn state(&self) -> Option<VideoState> {
         let inner = self.inner();
         let video = inner.as_ref()?;
 
