@@ -1,5 +1,6 @@
 import { SpringConfig, SpringState, Spring } from "spring-animation.slint";
 import { EveryFrameTimer } from "every-frame-timer.slint";
+import { GamepadKey } from "gamepad.slint";
 
 export enum ViewerState {
     Loading,
@@ -115,27 +116,27 @@ export component MediaViewer inherits Rectangle {
             if (!self.enabled) {
                 reject
             }
-            if (event.text == Key.RightArrow) {
+            if (event.text == GamepadKey.DPadRight) {
                 if (model.state != ViewerState.Loading) {
                     next();
                 }
                 accept
-            } else if (event.text == Key.LeftArrow) {
+            } else if (event.text == GamepadKey.DPadLeft) {
                 if (model.state != ViewerState.Loading) {
                     prev();
                 }
                 accept
-            } else if (event.text == Key.Return) {
+            } else if (event.text == GamepadKey.ActDown) {
                 if (video-active && !seeking.active && !event.repeat) {
                     video-set-playing(!model.video-is-playing);
                 }
                 accept
-            } else if (event.text == Key.Home || event.text == Key.End) {
+            } else if (event.text == GamepadKey.TriggerL2 || event.text == GamepadKey.TriggerR2) {
                 if (video-active && !event.repeat) {
-                    seeking.start(event.text == Key.Home ? SeekDirection.Backward : SeekDirection.Forward);
+                    seeking.start(event.text == GamepadKey.TriggerL2 ? SeekDirection.Backward : SeekDirection.Forward);
                 }
                 accept
-            } else if (event.text == Key.Escape) {
+            } else if (event.text == GamepadKey.ActRight) {
                 exit();
                 accept
             }
@@ -146,8 +147,8 @@ export component MediaViewer inherits Rectangle {
             if (!self.enabled) {
                 reject
             }
-            if (event.text == Key.Home || event.text == Key.End) {
-                seeking.try-finish(event.text == Key.Home ? SeekDirection.Backward : SeekDirection.Forward);
+            if (event.text == GamepadKey.TriggerL2 || event.text == GamepadKey.TriggerR2) {
+                seeking.try-finish(event.text == GamepadKey.TriggerL2 ? SeekDirection.Backward : SeekDirection.Forward);
                 accept
             }
             reject

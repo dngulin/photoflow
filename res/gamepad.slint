@@ -1,0 +1,62 @@
+export struct GamepadKeyMap {
+    act-up: string,
+    act-right: string,
+    act-down: string,
+    act-left: string,
+
+    dpad-up: string,
+    dpad-right: string,
+    dpad-down: string,
+    dpad-left: string,
+
+    menu-left: string,
+    menu-right: string,
+    menu-main: string,
+
+    trigger-l1: string,
+    trigger-l2: string,
+    trigger-r1: string,
+    trigger-r2: string,
+}
+
+export global GamepadKey {
+    out property <string> ActUp;
+    out property <string> ActRight;
+    out property <string> ActDown;
+    out property <string> ActLeft;
+
+    out property <string> DPadUp;
+    out property <string> DPadRight;
+    out property <string> DPadDown;
+    out property <string> DPadLeft;
+
+    out property <string> MenuLeft;
+    out property <string> MenuRight;
+    out property <string> MenuMain;
+
+    out property <string> TriggerL1;
+    out property <string> TriggerL2;
+    out property <string> TriggerR1;
+    out property <string> TriggerR2;
+
+    public function setup(map: GamepadKeyMap) {
+        self.ActUp = map.act-up;
+        self.ActRight = map.act-right;
+        self.ActDown = map.act-down;
+        self.ActLeft = map.act-left;
+
+        self.DPadUp = map.dpad-up;
+        self.DPadRight = map.dpad-right;
+        self.DPadDown = map.dpad-down;
+        self.DPadLeft = map.dpad-left;
+
+        self.MenuLeft = map.menu-left;
+        self.MenuRight = map.menu-right;
+        self.MenuMain = map.menu-main;
+
+        self.TriggerL1 = map.trigger-l1;
+        self.TriggerL2 = map.trigger-l2;
+        self.TriggerR1 = map.trigger-r1;
+        self.TriggerR2 = map.trigger-r2;
+    }
+}

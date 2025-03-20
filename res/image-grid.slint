@@ -1,4 +1,5 @@
 import { VerticalScrollable } from "vertical-scrollable.slint";
+import { GamepadKey } from "gamepad.slint";
 
 export struct ImageGridItem {
     index: int,
@@ -135,23 +136,23 @@ export component ImageGrid inherits VerticalScrollable {
             if (!self.enabled) {
                 reject
             }
-            if (event.text == Key.RightArrow) {
+            if (event.text == GamepadKey.DPadRight) {
                 mv-selection-right();
                 accept
-            } else if (event.text == Key.LeftArrow) {
+            } else if (event.text == GamepadKey.DPadLeft) {
                 mv-selection-left();
                 accept
-            } else if (event.text == Key.UpArrow) {
+            } else if (event.text == GamepadKey.DPadUp) {
                 mv-selection-up();
                 accept
-            } else if (event.text == Key.DownArrow) {
+            } else if (event.text == GamepadKey.DPadDown) {
                 mv-selection-down();
                 accept
-            } else if (event.text == Key.Return) {
+            } else if (event.text == GamepadKey.ActDown) {
                 set-visible-range(0, 0);
                 enter();
                 accept
-            } else if (event.text == Key.Escape) {
+            } else if (event.text == GamepadKey.ActRight) {
                 exit();
                 accept
             }

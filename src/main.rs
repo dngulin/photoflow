@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::db::IndexDb;
-use crate::gamepad_input::GamepadInputListener;
-use crate::ui::{Mode, PhotoFlowApp};
+use crate::gamepad_input::{GamepadInputListener, KeyMap};
+use crate::ui::{GamepadKey, GamepadKeyMap, Mode, PhotoFlowApp};
 use crate::winit::WinitWindow;
 use slint::{ComponentHandle, Timer, TimerMode};
 use std::fs;
@@ -76,7 +76,30 @@ fn setup_app_window(app: &PhotoFlowApp) {
 }
 
 fn setup_gamepad_input(app: &PhotoFlowApp) -> Timer {
-    let mut gamepad_manager = GamepadInputListener::new().unwrap();
+    let keymap = KeyMap::default();
+    let mut gamepad_manager = GamepadInputListener::new(keymap.clone()).unwrap();
+
+    let gamepad_key = app.global::<GamepadKey>();
+    gamepad_key.invoke_setup(GamepadKeyMap {
+        act_down: keymap.act_down,
+        act_left: keymap.act_left,
+        act_right: keymap.act_right,
+        act_up: keymap.act_up,
+
+        dpad_down: keymap.dpad_down,
+        dpad_left: keymap.dpad_left,
+        dpad_right: keymap.dpad_right,
+        dpad_up: keymap.dpad_up,
+
+        menu_left: keymap.menu_left,
+        menu_main: keymap.menu_main,
+        menu_right: keymap.menu_right,
+
+        trigger_l1: keymap.trigger_l1,
+        trigger_l2: keymap.trigger_l2,
+        trigger_r1: keymap.trigger_r1,
+        trigger_r2: keymap.trigger_r2,
+    });
 
     let app_weak = app.as_weak();
     let gamepad_poll_timer = Timer::default();
