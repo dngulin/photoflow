@@ -1,0 +1,29 @@
+export component Label inherits Rectangle {
+    in property <image> icon <=> i.source;
+    in property <string> text <=> t.text;
+    in property <length> font-size <=> t.font-size;
+
+    border-radius: self.font-size / 4;
+    background: black;
+    height: l.preferred-height;
+    width: l.preferred-width;
+
+    l := HorizontalLayout {
+        padding: root.font-size / 4;
+        padding-left: self.padding * 2;
+        padding-right: self.padding-left;
+        spacing: self.padding;
+
+        i := Image {
+            width: t.height;
+            height: t.height;
+        }
+
+        t := Text {
+            color: white;
+            font-weight: 500;
+            height: self.font-size * 1.618;
+            vertical-alignment: center;
+        }
+    }
+}
