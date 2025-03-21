@@ -5,6 +5,8 @@ export component LoadingIndicator {
     in property <bool> enabled;
 
     spinner := Image {
+        visible: self.opacity > 0;
+
         x: parent.width - self.width;
         y: parent.height - self.height;
         source: @image-url("img/spinner.svg");
