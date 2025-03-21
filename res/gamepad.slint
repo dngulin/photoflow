@@ -1,24 +1,3 @@
-export struct GamepadKeyMap {
-    act-up: string,
-    act-right: string,
-    act-down: string,
-    act-left: string,
-
-    dpad-up: string,
-    dpad-right: string,
-    dpad-down: string,
-    dpad-left: string,
-
-    menu-left: string,
-    menu-right: string,
-    menu-main: string,
-
-    trigger-l1: string,
-    trigger-l2: string,
-    trigger-r1: string,
-    trigger-r2: string,
-}
-
 export global GamepadKey {
     out property <string> ActUp;
     out property <string> ActRight;
@@ -30,33 +9,39 @@ export global GamepadKey {
     out property <string> DPadDown;
     out property <string> DPadLeft;
 
+    out property <string> MenuMain;
     out property <string> MenuLeft;
     out property <string> MenuRight;
-    out property <string> MenuMain;
 
     out property <string> TriggerL1;
     out property <string> TriggerL2;
     out property <string> TriggerR1;
     out property <string> TriggerR2;
 
-    public function setup(map: GamepadKeyMap) {
-        self.ActUp = map.act-up;
-        self.ActRight = map.act-right;
-        self.ActDown = map.act-down;
-        self.ActLeft = map.act-left;
+    public function set_actions(up: string, right: string, down: string, left: string) {
+        self.ActUp = up;
+        self.ActRight = right;
+        self.ActDown = down;
+        self.ActLeft = left;
+    }
 
-        self.DPadUp = map.dpad-up;
-        self.DPadRight = map.dpad-right;
-        self.DPadDown = map.dpad-down;
-        self.DPadLeft = map.dpad-left;
+    public function set_dpad(up: string, right: string, down: string, left: string) {
+        self.DPadUp = up;
+        self.DPadRight = right;
+        self.DPadDown = down;
+        self.DPadLeft = left;
+    }
 
-        self.MenuLeft = map.menu-left;
-        self.MenuRight = map.menu-right;
-        self.MenuMain = map.menu-main;
+    public function set_menupad(main: string, left: string, right: string) {
+        self.MenuMain = main;
+        self.MenuLeft = left;
+        self.MenuRight = right;
+    }
 
-        self.TriggerL1 = map.trigger-l1;
-        self.TriggerL2 = map.trigger-l2;
-        self.TriggerR1 = map.trigger-r1;
-        self.TriggerR2 = map.trigger-r2;
+    public function set_triggers(l1: string, l2: string, r1: string, r2: string) {
+        self.TriggerL1 = l1;
+        self.TriggerL2 = l2;
+        self.TriggerR1 = r1;
+        self.TriggerR2 = r2;
     }
 }

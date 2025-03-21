@@ -19,10 +19,10 @@ pub struct KeyMap {
     pub menu_right: SharedString,
     pub menu_main: SharedString,
 
-    pub trigger_l1: SharedString,
-    pub trigger_l2: SharedString,
-    pub trigger_r1: SharedString,
-    pub trigger_r2: SharedString,
+    pub trig_l1: SharedString,
+    pub trig_l2: SharedString,
+    pub trig_r1: SharedString,
+    pub trig_r2: SharedString,
 }
 
 impl Default for KeyMap {
@@ -42,10 +42,10 @@ impl Default for KeyMap {
             menu_right: Key::Menu.into(),
             menu_main: Key::Meta.into(),
 
-            trigger_l1: Key::PageUp.into(),
-            trigger_l2: Key::Home.into(),
-            trigger_r1: Key::PageDown.into(),
-            trigger_r2: Key::End.into(),
+            trig_l1: Key::PageUp.into(),
+            trig_l2: Key::Home.into(),
+            trig_r1: Key::PageDown.into(),
+            trig_r2: Key::End.into(),
         }
     }
 }
@@ -64,10 +64,10 @@ impl From<KeyMap> for HashMap<Button, SharedString> {
             (Button::Select, value.menu_left),
             (Button::Start, value.menu_right),
             (Button::Mode, value.menu_main),
-            (Button::LeftTrigger, value.trigger_l1),
-            (Button::LeftTrigger2, value.trigger_l2),
-            (Button::RightTrigger, value.trigger_r1),
-            (Button::RightTrigger2, value.trigger_r2),
+            (Button::LeftTrigger, value.trig_l1),
+            (Button::LeftTrigger2, value.trig_l2),
+            (Button::RightTrigger, value.trig_r1),
+            (Button::RightTrigger2, value.trig_r2),
         ])
     }
 }
