@@ -25,7 +25,7 @@ export component VideoHud {
         background: white;
     }
 
-    label := Label {
+    if is-seeking(): Label {
         x: parent.width - self.width - 4px;
         y: 4px;
         icon: label-icon();
@@ -33,19 +33,14 @@ export component VideoHud {
         font-size: 12px;
     }
 
+    pure function is-seeking() -> bool {
+        model.state == HudState.SeekingForward || model.state == HudState.SeekingBackward
+    }
+
     pure function label-icon() -> image {
-        if (model.state == HudState.Paused) {
-            return @image-url("img/pause.svg");
-        }
-        if (model.state == HudState.Playing) {
-            return @image-url("img/play.svg");
-        }
         if (model.state == HudState.SeekingForward) {
             return @image-url("img/seek-forward.svg");
         }
-        if (model.state == HudState.SeekingBackward) {
-            return @image-url("img/seek-backward.svg");
-        }
-        return @image-url("img/video.svg");
+        return @image-url("img/seek-backward.svg");
     }
 }
