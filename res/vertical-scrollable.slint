@@ -22,13 +22,15 @@ export component VerticalScrollable inherits Rectangle {
         private property <SpringState> state;
         private property <SpringConfig> config: { stiffness: 700, damping: 40, mass: 1 };
 
+        private property <length> unit: 256px;
+
         function start(target: length) {
-            state = Spring.start(root.viewport-y / 1px, target / 1px, state.velocity);
+            state = Spring.start(root.viewport-y / unit, target / unit, state.velocity);
         }
 
         triggered(dt) => {
             state = Spring.update(config, state, dt / 1s);
-            parent.viewport-y = state.current-value * 1px;
+            parent.viewport-y = state.current-value * unit;
         }
     }
 
