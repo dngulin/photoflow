@@ -8,6 +8,7 @@ use self::playing_video::CurrentVideo;
 use crate::db::IndexDb;
 use crate::media::{Media, MediaType};
 use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
+use crate::util;
 use crate::video::VideoLoader;
 use anyhow::anyhow;
 use slint::{ComponentHandle, Image, RenderingState, Weak};
@@ -155,7 +156,7 @@ fn on_load_start(app: PhotoFlowApp, path: &str, curr_video: CurrentVideo) {
         image,
         is_video,
         video_is_playing: true,
-        video_progress: 0.0,
+        ..Default::default()
     });
 }
 
@@ -222,6 +223,7 @@ fn set_video_state(weak_app: &Weak<PhotoFlowApp>, curr_video: &CurrentVideo) -> 
     bridge.set_model(MediaViewerModel {
         video_is_playing: video_state.is_playing,
         video_progress: video_state.progress,
+        video_progress_str: util::hh_mm_ss(video_state.position_ms).into(),
         ..model
     });
 

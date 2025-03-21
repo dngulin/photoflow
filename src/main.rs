@@ -15,6 +15,7 @@ mod gamepad_input;
 mod image_loader;
 mod indexer;
 mod media;
+mod util;
 mod video;
 mod viewer;
 mod winit;

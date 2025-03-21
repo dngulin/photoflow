@@ -1,0 +1,51 @@
+import { Label } from "label.slint";
+
+export enum HudState {
+    Paused,
+    Playing,
+    SeekingForward,
+    SeekingBackward
+}
+
+export struct HudModel {
+    state: HudState,
+    progress: float,
+    progress-str: string,
+}
+
+export component VideoHud {
+    in property <HudModel> model;
+    in property <length> bar-height: 4px;
+
+    bar := Rectangle {
+        x: 0;
+        y: parent.height - bar-height;
+        height: bar-height;
+        width: model.progress * parent.width;
+        background: white;
+    }
+
+    label := Label {
+        x: parent.width - self.width - 4px;
+        y: 4px;
+        icon: label-icon();
+        text: model.progress-str;
+        font-size: 12px;
+    }
+
+    pure function label-icon() -> image {
+        if (model.state == HudState.Paused) {
+            return @image-url("img/pause.svg");
+        }
+        if (model.state == HudState.Playing) {
+            return @image-url("img/play.svg");
+        }
+        if (model.state == HudState.SeekingForward) {
+            return @image-url("img/seek-forward.svg");
+        }
+        if (model.state == HudState.SeekingBackward) {
+            return @image-url("img/seek-backward.svg");
+        }
+        return @image-url("img/video.svg");
+    }
+}

@@ -3,7 +3,7 @@ use self::pipeline_ext::PipelineExt;
 use anyhow::anyhow;
 use gl_context_slint::GLContextSlint;
 use gstreamer::prelude::*;
-use gstreamer::{Pipeline, State};
+use gstreamer::{ClockTime, Pipeline, State};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
 use slint::{ComponentHandle, GraphicsAPI, Image, Weak};
@@ -135,6 +135,10 @@ impl Video {
 
     pub fn progress(&self) -> Option<f32> {
         self.pipeline.progress().ok()
+    }
+
+    pub fn position_ms(&self) -> Option<u64> {
+        Some(self.pipeline.query_position::<ClockTime>()?.mseconds())
     }
 
     pub fn seek(&self, progress: f32, mode: SeekMode) -> Option<()> {
