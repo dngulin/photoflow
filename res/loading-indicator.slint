@@ -1,0 +1,34 @@
+import { EveryFrameTimer } from "every-frame-timer.slint";
+import { SpringConfig, SpringState, Spring } from "spring-animation.slint";
+
+export component LoadingIndicator {
+    in property <bool> enabled;
+
+    spinner := Image {
+        x: parent.width - self.width;
+        y: parent.height - self.height;
+        source: @image-url("img/spinner.svg");
+        rotation-angle: 360deg * mod(animation-tick(), 2s) / 2s;
+
+        property <float> traget-opacity: root.enabled ? 1 : 0;
+        changed traget-opacity => {
+            spinner-alpha-animator.start();
+        }
+    }
+
+    spinner-alpha-animator := EveryFrameTimer {
+        active: Spring.is-active(state);
+
+        private property <SpringState> state: { current-value: spinner.traget-opacity, target-value: spinner.traget-opacity };
+        private property <SpringConfig> config: { stiffness: 500, damping: 40, mass: 1 };
+
+        function start() {
+            state = Spring.start(spinner.opacity, spinner.traget-opacity, state.velocity);
+        }
+
+        triggered(dt) => {
+            state = Spring.update(config, state, dt / 1s);
+            spinner.opacity = state.current-value;
+        }
+    }
+}
