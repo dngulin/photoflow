@@ -86,7 +86,12 @@ impl Video {
             move |_bus, msg| bus_msg_handler::invoke(msg, &gl_ctx, &pipeline, &seek_state)
         });
 
-        pipeline.set_state(State::Ready)?;
+        pipeline.set_state(State::Paused)?;
+
+        // TODO: wait for a state change in a better way
+        while pipeline.current_state() != State::Paused {
+            thread::sleep(Duration::from_millis(16));
+        }
 
         let pipeline = Arc::new(PipelineOwned::new(pipeline));
 
