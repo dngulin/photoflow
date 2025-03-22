@@ -1,9 +1,9 @@
 use self::framebuffer::FrameBuffer;
-use self::pipeline_ext::PipelineExt;
+use self::pipeline_ext::{PipelineExt, PipelineOwned};
 use anyhow::anyhow;
 use gl_context_slint::GLContextSlint;
 use gstreamer::prelude::*;
-use gstreamer::{ClockTime, Pipeline, State};
+use gstreamer::{ClockTime, State};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
 use slint::{ComponentHandle, GraphicsAPI, Image, Weak};
@@ -50,18 +50,11 @@ impl VideoLoader {
     }
 }
 
+#[derive(Clone)]
 pub struct Video {
-    pipeline: Pipeline,
+    pipeline: Arc<PipelineOwned>,
     fb: Arc<Mutex<FrameBuffer>>,
     seek_state: Arc<Mutex<SeekRequestBuffer>>,
-    request_redraw: Arc<dyn Fn() + Send + Sync + 'static>,
-}
-
-impl Drop for Video {
-    fn drop(&mut self) {
-        let _ = self.pipeline.set_state(State::Null);
-        self.request_redraw();
-    }
 }
 
 impl Video {
@@ -95,16 +88,13 @@ impl Video {
 
         pipeline.set_state(State::Ready)?;
 
+        let pipeline = Arc::new(PipelineOwned::new(pipeline));
+
         Ok(Self {
             pipeline,
             fb,
             seek_state,
-            request_redraw,
         })
-    }
-
-    fn request_redraw(&self) {
-        (self.request_redraw)();
     }
 
     pub fn current_frame_gl_ref(&self) -> Option<Image> {

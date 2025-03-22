@@ -1,48 +1,44 @@
 use crate::video::{SeekMode, Video};
 use slint::Image;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Default)]
 pub struct CurrentVideo(Arc<Mutex<Option<Video>>>);
 
 impl CurrentVideo {
-    fn inner(&self) -> MutexGuard<Option<Video>> {
-        self.0.lock().unwrap()
+    pub fn set(&self, video: Video) {
+        *self.0.lock().unwrap() = Some(video);
     }
 
-    pub fn set(&self, video: Video) {
-        *self.inner() = Some(video);
+    pub fn stop(&self) {
+        *self.0.lock().unwrap() = None;
+    }
+
+    fn inner(&self) -> Option<Video> {
+        self.0.lock().unwrap().clone()
     }
 
     pub fn curr_video_gl_frame(&self) -> Option<Image> {
-        self.inner().as_ref().and_then(|p| p.current_frame_gl_ref())
+        self.inner().and_then(|p| p.current_frame_gl_ref())
     }
 
     pub fn copy_current_frame_and_stop(&self) -> Option<Image> {
-        let mut inner = self.inner();
-        if let Some(video) = inner.as_ref() {
-            let opt_frame = video.current_frame_copy();
-            *inner = None;
-            return opt_frame;
+        if let Some(video) = self.inner() {
+            self.stop();
+            return video.current_frame_copy();
         }
 
         None
     }
 
-    pub fn stop(&self) {
-        *self.inner() = None;
-    }
-
     pub fn set_playing(&self, playing_state: bool) {
-        let inner = self.inner();
-        if let Some(video) = inner.as_ref() {
+        if let Some(video) = self.inner() {
             let _ = video.set_playing(playing_state);
         }
     }
 
     pub fn state(&self) -> Option<VideoState> {
-        let inner = self.inner();
-        let video = inner.as_ref()?;
+        let video = self.inner()?;
 
         let is_playing = video.is_playing();
         let progress = video.progress()?;
@@ -56,8 +52,7 @@ impl CurrentVideo {
     }
 
     pub fn seek_progress(&self, progress: f32) {
-        let inner = self.inner();
-        if let Some(video) = inner.as_ref() {
+        if let Some(video) = self.inner() {
             video.seek(progress, SeekMode::Buffered);
         }
     }
