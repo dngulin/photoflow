@@ -9,6 +9,8 @@ use gstreamer_gl::GLContext;
 use slint::{ComponentHandle, GraphicsAPI, Image, Weak};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 mod bus_msg_handler;
 mod framebuffer;
@@ -132,8 +134,8 @@ impl Video {
         self.pipeline.progress().ok()
     }
 
-    pub fn position_ms(&self) -> Option<u64> {
-        Some(self.pipeline.query_position::<ClockTime>()?.mseconds())
+    pub fn duration_seconds(&self) -> Option<f32> {
+        Some(self.pipeline.query_duration::<ClockTime>()?.seconds_f32())
     }
 
     pub fn seek(&self, progress: f32, mode: SeekMode) -> Option<()> {

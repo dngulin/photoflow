@@ -1,5 +1,9 @@
 import { Label } from "label.slint";
 
+export global TimeFormatter {
+    pure callback hh-mm-ss(seconds: float) -> string;
+}
+
 export enum HudState {
     Paused,
     Playing,
@@ -8,9 +12,9 @@ export enum HudState {
 }
 
 export struct HudModel {
+    duration-seconds: float,
     state: HudState,
     progress: float,
-    progress-str: string,
 }
 
 export component VideoHud {
@@ -29,7 +33,7 @@ export component VideoHud {
         x: parent.width - self.width - 4px;
         y: 4px;
         icon: label-icon();
-        text: model.progress-str;
+        text: TimeFormatter.hh-mm-ss(model.duration-seconds * model.progress);
         font-size: 12px;
     }
 

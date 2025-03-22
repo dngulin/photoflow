@@ -42,12 +42,10 @@ impl CurrentVideo {
 
         let is_playing = video.is_playing();
         let progress = video.progress()?;
-        let position_ms = video.position_ms()?;
 
         Some(VideoState {
             is_playing,
             progress,
-            position_ms,
         })
     }
 
@@ -61,5 +59,4 @@ impl CurrentVideo {
 pub struct VideoState {
     pub is_playing: bool,
     pub progress: f32,
-    pub position_ms: u64,
 }

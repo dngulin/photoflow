@@ -7,7 +7,7 @@ use self::media_loader::MediaLoader;
 use self::playing_video::CurrentVideo;
 use crate::db::IndexDb;
 use crate::media::{Media, MediaType};
-use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, ViewerState};
+use crate::ui::{MediaViewerBridge, MediaViewerModel, PhotoFlowApp, TimeFormatter, ViewerState};
 use crate::util;
 use crate::video::VideoLoader;
 use anyhow::anyhow;
@@ -33,6 +33,11 @@ pub fn bind_gallery_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyho
 }
 
 pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
+    let formatter = app.global::<TimeFormatter>();
+    formatter.on_hh_mm_ss(move |duration_seconds| {
+        util::hh_mm_ss((duration_seconds * 1000.0).round() as u64).into()
+    });
+
     let bridge = app.global::<MediaViewerBridge>();
 
     let video_loader = Arc::new(Mutex::new(None));
@@ -155,7 +160,6 @@ fn on_load_start(app: PhotoFlowApp, path: &str, curr_video: CurrentVideo) {
         file_name: file_name.into(),
         image,
         is_video,
-        video_is_playing: true,
         ..Default::default()
     });
 }
@@ -164,30 +168,32 @@ fn on_load_finish(app: PhotoFlowApp, curr_video: CurrentVideo, result: anyhow::R
     let bridge = app.global::<MediaViewerBridge>();
     let model = bridge.get_model();
 
-    match result {
-        Ok(media) => {
-            bridge.set_model(MediaViewerModel {
+    let model = match result {
+        Ok(media) => match media {
+            Media::Image(image) => MediaViewerModel {
                 state: ViewerState::Loaded,
-                file_name: model.file_name,
-                image: match media {
-                    Media::Image(img) => img,
-                    Media::Video(video) => {
-                        curr_video.set(video);
-                        model.image
-                    }
-                },
+                image,
                 ..model
-            });
-        }
-        Err(_) => {
-            bridge.set_model(MediaViewerModel {
-                state: ViewerState::FailedToLoad,
-                file_name: model.file_name,
-                image: Image::default(),
-                ..model
-            });
-        }
+            },
+            Media::Video(video) => {
+                let video_duration_seconds = video.duration_seconds().unwrap_or_default();
+                let _ = video.set_playing(true);
+                curr_video.set(video);
+                MediaViewerModel {
+                    state: ViewerState::Loaded,
+                    video_duration_seconds,
+                    ..model
+                }
+            }
+        },
+        Err(_) => MediaViewerModel {
+            state: ViewerState::FailedToLoad,
+            image: Image::default(),
+            ..model
+        },
     };
+
+    bridge.set_model(model);
 }
 
 fn clear(
@@ -223,7 +229,6 @@ fn set_video_state(weak_app: &Weak<PhotoFlowApp>, curr_video: &CurrentVideo) -> 
     bridge.set_model(MediaViewerModel {
         video_is_playing: video_state.is_playing,
         video_progress: video_state.progress,
-        video_progress_str: util::hh_mm_ss(video_state.position_ms).into(),
         ..model
     });
 

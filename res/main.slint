@@ -3,7 +3,8 @@ import { MediaViewer, MediaViewerModel, ViewerState } from "media-viewer.slint";
 import { CircularProgressBar } from "circular-progress-bar.slint";
 
 import { GamepadKey } from "gamepad.slint";
-export { GamepadKey }
+import { TimeFormatter } from "video-hud.slint";
+export { GamepadKey, TimeFormatter }
 
 export global MediaViewerBridge {
     in property <MediaViewerModel> model;

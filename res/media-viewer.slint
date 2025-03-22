@@ -14,9 +14,9 @@ export struct MediaViewerModel {
     file-name: string,
     image: image,
     is-video: bool,
+    video-duration-seconds: float,
     video-is-playing: bool,
     video-progress: float,
-    video-progress-str: string,
 }
 
 enum SeekDirection {
@@ -60,9 +60,9 @@ export component MediaViewer inherits Rectangle {
         height: min(parent.height, parent.width / ratio);
 
         model: {
+            duration-seconds: model.video-duration-seconds,
             state: hud-state(),
-            progress: parent.model.video-progress,
-            progress-str: parent.model.video-progress-str,
+            progress: seeking.active ? seeking.target : parent.model.video-progress,
         };
 
         pure function hud-state() -> HudState {
@@ -74,7 +74,9 @@ export component MediaViewer inherits Rectangle {
 
         visible: self.is-visible();
         pure function is-visible() -> bool {
-            poll-video-state();
+            if (!seeking.active) {
+                poll-video-state();
+            }
             true
         }
     }

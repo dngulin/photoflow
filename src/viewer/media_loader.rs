@@ -122,8 +122,6 @@ impl MediaLoader {
                     .ok_or_else(|| anyhow::anyhow!("Video loader is not initialized"))?;
 
                 let video = video_loader.load(path)?;
-                video.set_playing(true)?;
-
                 Ok(MediaInner::Video(video))
             }
         }
