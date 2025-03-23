@@ -13,7 +13,7 @@ export global MediaViewerBridge {
 
     pure callback poll-video-state();
     pure callback video-set-playing(playing-state: bool);
-    pure callback video-seek-progress(progress: float);
+    pure callback video-seek(position: duration);
 }
 
 export enum Mode {
@@ -129,8 +129,8 @@ export component PhotoFlowApp inherits Window {
             MediaViewerBridge.video-set-playing(playing-state);
         }
 
-        video-seek-progress(progress) => {
-            MediaViewerBridge.video-seek-progress(progress);
+        video-seek(position) => {
+            MediaViewerBridge.video-seek(position);
         }
 
         exit => {

@@ -14,9 +14,9 @@ export struct MediaViewerModel {
     file-name: string,
     image: image,
     is-video: bool,
-    video-duration-seconds: float,
+    video-duration: duration,
     video-is-playing: bool,
-    video-progress: float,
+    video-position: duration,
 }
 
 enum SeekDirection {
@@ -30,6 +30,7 @@ export component MediaViewer inherits Rectangle {
     clip: true;
 
     in property <MediaViewerModel> model;
+    private property <float> video-progress: model.video-duration == 0s ? 0 : model.video-position / model.video-duration;
 
     forward-focus: fs;
     in-out property <bool> enabled: true;
@@ -40,7 +41,7 @@ export component MediaViewer inherits Rectangle {
 
     pure callback poll-video-state();
     callback video-set-playing(playing-state: bool);
-    callback video-seek-progress(progress: float);
+    callback video-seek(position: duration);
 
     if model.state != ViewerState.FailedToLoad: Image {
         width: 100%;
@@ -60,9 +61,9 @@ export component MediaViewer inherits Rectangle {
         height: min(parent.height, parent.width / ratio);
 
         model: {
-            duration-seconds: model.video-duration-seconds,
+            duration: model.video-duration,
             state: hud-state(),
-            progress: seeking.active ? seeking.target : parent.model.video-progress,
+            progress: seeking.active ? seeking.target : parent.video-progress,
         };
 
         pure function hud-state() -> HudState {
@@ -149,7 +150,7 @@ export component MediaViewer inherits Rectangle {
         public function start(direction: SeekDirection) {
             self.direction = direction;
             self.active = true;
-            self.target = model.video-progress;
+            self.target = parent.video-progress;
 
             self.was-playing = model.video-is-playing;
             if (model.video-is-playing) {
@@ -180,7 +181,7 @@ export component MediaViewer inherits Rectangle {
 
         triggered(dt) => {
             self.target = clamp(self.target + self.progress-delta(dt), 0, 1);
-            video-seek-progress(self.target);
+            video-seek(model.video-duration * self.target);
         }
     }
 }
