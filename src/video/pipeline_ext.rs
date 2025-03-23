@@ -4,27 +4,27 @@ use std::ops::Deref;
 use std::time::Duration;
 
 pub trait PipelineExt {
-    fn duration(&self) -> Option<Duration>;
-    fn position(&self) -> Option<Duration>;
-    fn seek(&self, new_pos: Duration) -> anyhow::Result<()>;
+    fn duration_std(&self) -> Option<Duration>;
+    fn position_std(&self) -> Option<Duration>;
+    fn seek_std(&self, new_pos: Duration) -> anyhow::Result<()>;
 }
 
 const ACCURATE_SEEK_THRESHOLD: Duration = Duration::from_secs(10);
 
 impl PipelineExt for Pipeline {
-    fn duration(&self) -> Option<Duration> {
+    fn duration_std(&self) -> Option<Duration> {
         let duration = self.query_duration::<ClockTime>()?;
         Some(Duration::from_nanos(duration.nseconds()))
     }
 
-    fn position(&self) -> Option<Duration> {
+    fn position_std(&self) -> Option<Duration> {
         let position = self.query_position::<ClockTime>()?;
         Some(Duration::from_nanos(position.nseconds()))
     }
 
-    fn seek(&self, new_pos: Duration) -> anyhow::Result<()> {
+    fn seek_std(&self, new_pos: Duration) -> anyhow::Result<()> {
         let pos = self
-            .position()
+            .position_std()
             .ok_or_else(|| anyhow::anyhow!("Failed to query position"))?;
 
         let accurate = Duration::abs_diff(pos, new_pos) < Duration::from_secs(10);
