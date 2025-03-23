@@ -28,7 +28,7 @@ impl PipelineStd for Pipeline {
             .std_position()
             .ok_or_else(|| anyhow::anyhow!("Failed to query position"))?;
 
-        let accurate = Duration::abs_diff(pos, new_pos) < Duration::from_secs(10);
+        let accurate = Duration::abs_diff(pos, new_pos) < ACCURATE_SEEK_THRESHOLD;
 
         let flags = if accurate {
             SeekFlags::FLUSH | SeekFlags::ACCURATE
