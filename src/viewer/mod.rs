@@ -80,7 +80,7 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
     bridge.on_video_seek_progress({
         let curr_video = curr_video.clone();
         move |progress| {
-            curr_video.seek_progress(progress);
+            curr_video.seek(progress);
         }
     });
 
@@ -176,12 +176,12 @@ fn on_load_finish(app: PhotoFlowApp, curr_video: CurrentVideo, result: anyhow::R
                 ..model
             },
             Media::Video(video) => {
-                let video_duration_seconds = video.duration_seconds().unwrap_or_default();
+                let duration = video.duration().unwrap_or_default();
                 let _ = video.set_playing(true);
                 curr_video.set(video);
                 MediaViewerModel {
                     state: ViewerState::Loaded,
-                    video_duration_seconds,
+                    video_duration: duration,
                     ..model
                 }
             }
@@ -228,7 +228,7 @@ fn set_video_state(weak_app: &Weak<PhotoFlowApp>, curr_video: &CurrentVideo) -> 
 
     bridge.set_model(MediaViewerModel {
         video_is_playing: video_state.is_playing,
-        video_progress: video_state.progress,
+        video_position: video_state.position,
         ..model
     });
 

@@ -1,6 +1,7 @@
 use crate::video::{SeekMode, Video};
 use slint::Image;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 #[derive(Clone, Default)]
 pub struct CurrentVideo(Arc<Mutex<Option<Video>>>);
@@ -41,22 +42,22 @@ impl CurrentVideo {
         let video = self.inner()?;
 
         let is_playing = video.is_playing();
-        let progress = video.progress()?;
+        let position = video.position()?;
 
         Some(VideoState {
             is_playing,
-            progress,
+            position,
         })
     }
 
-    pub fn seek_progress(&self, progress: f32) {
+    pub fn seek(&self, new_pos: Duration) {
         if let Some(video) = self.inner() {
-            video.seek(progress, SeekMode::Buffered);
+            video.seek(new_pos, SeekMode::Buffered);
         }
     }
 }
 
 pub struct VideoState {
     pub is_playing: bool,
-    pub progress: f32,
+    pub position: Duration,
 }
