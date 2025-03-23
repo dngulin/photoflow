@@ -1,5 +1,5 @@
 use self::framebuffer::FrameBuffer;
-use self::pipeline_ext::{PipelineExt, PipelineOwned};
+use self::pipeline_ext::{PipelineOwned, PipelineStd};
 use anyhow::anyhow;
 use gl_context_slint::GLContextSlint;
 use gstreamer::State;
@@ -130,11 +130,11 @@ impl Video {
     }
 
     pub fn position(&self) -> Option<Duration> {
-        self.pipeline.position_std()
+        self.pipeline.std_position()
     }
 
     pub fn duration(&self) -> Option<Duration> {
-        self.pipeline.duration_std()
+        self.pipeline.std_duration()
     }
 
     pub fn seek(&self, new_pos: Duration, mode: SeekMode) -> Option<()> {
@@ -149,7 +149,7 @@ impl Video {
             return Some(());
         }
 
-        if self.pipeline.seek_std(new_pos).is_ok() {
+        if self.pipeline.std_seek(new_pos).is_ok() {
             seek_state.current = Some(new_pos);
             seek_state.pending = None;
         }

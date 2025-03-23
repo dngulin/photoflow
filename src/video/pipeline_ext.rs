@@ -3,28 +3,29 @@ use gstreamer::{ClockTime, Pipeline, SeekFlags, State};
 use std::ops::Deref;
 use std::time::Duration;
 
-pub trait PipelineExt {
-    fn duration_std(&self) -> Option<Duration>;
-    fn position_std(&self) -> Option<Duration>;
-    fn seek_std(&self, new_pos: Duration) -> anyhow::Result<()>;
+/// Extension methods for Pipline that use standard library types
+pub trait PipelineStd {
+    fn std_duration(&self) -> Option<Duration>;
+    fn std_position(&self) -> Option<Duration>;
+    fn std_seek(&self, new_pos: Duration) -> anyhow::Result<()>;
 }
 
 const ACCURATE_SEEK_THRESHOLD: Duration = Duration::from_secs(10);
 
-impl PipelineExt for Pipeline {
-    fn duration_std(&self) -> Option<Duration> {
+impl PipelineStd for Pipeline {
+    fn std_duration(&self) -> Option<Duration> {
         let duration = self.query_duration::<ClockTime>()?;
         Some(Duration::from_nanos(duration.nseconds()))
     }
 
-    fn position_std(&self) -> Option<Duration> {
+    fn std_position(&self) -> Option<Duration> {
         let position = self.query_position::<ClockTime>()?;
         Some(Duration::from_nanos(position.nseconds()))
     }
 
-    fn seek_std(&self, new_pos: Duration) -> anyhow::Result<()> {
+    fn std_seek(&self, new_pos: Duration) -> anyhow::Result<()> {
         let pos = self
-            .position_std()
+            .std_position()
             .ok_or_else(|| anyhow::anyhow!("Failed to query position"))?;
 
         let accurate = Duration::abs_diff(pos, new_pos) < Duration::from_secs(10);

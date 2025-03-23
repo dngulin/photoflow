@@ -1,4 +1,4 @@
-use super::pipeline_ext::PipelineExt;
+use super::pipeline_ext::PipelineStd;
 use super::SeekRequestBuffer;
 use gstreamer::glib::WeakRef;
 use gstreamer::message::NeedContext;
@@ -96,7 +96,7 @@ fn finish_seeking(
     seek_state.pending = None;
 
     if let Some(progress) = seek_state.current {
-        pipeline.seek_std(progress).ok()?;
+        pipeline.std_seek(progress).ok()?;
     }
 
     Some(())
