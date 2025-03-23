@@ -3,12 +3,52 @@ use super::SeekRequestBuffer;
 use gstreamer::glib::WeakRef;
 use gstreamer::message::NeedContext;
 use gstreamer::prelude::*;
-use gstreamer::{BusSyncReply, Context, Element, Message, MessageView, Object, Pipeline, State};
+use gstreamer::{
+    glib, BusSyncReply, Context, Element, Message, MessageView, Object, Pipeline, State,
+};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 
-pub fn invoke(
+#[derive(Default)]
+pub struct LoadingWaiter {
+    pub cond_var: Condvar,
+    pub result: Mutex<Option<Result<(), glib::Error>>>,
+}
+
+impl LoadingWaiter {
+    pub fn set_result(&self, value: Result<(), glib::Error>) {
+        let mut result = self.result.lock().unwrap();
+        if result.is_none() {
+            *result = Some(value);
+            self.cond_var.notify_one();
+        }
+    }
+
+    pub fn wait(&self) -> Result<(), glib::Error> {
+        let mut result = self.result.lock().unwrap();
+        while result.is_none() {
+            result = self.cond_var.wait(result).unwrap();
+        }
+        result.as_ref().unwrap().clone()
+    }
+}
+
+pub fn loading_handler(
+    msg: &Message,
+    gl_ctx: &GLContext,
+    waiter: &Arc<LoadingWaiter>,
+) -> BusSyncReply {
+    match msg.view() {
+        MessageView::NeedContext(nc) => provide_ctx(nc, msg.src(), gl_ctx),
+        MessageView::AsyncDone(..) => waiter.set_result(Ok(())),
+        MessageView::Error(err) => waiter.set_result(Err(err.error())),
+        _ => {}
+    }
+    BusSyncReply::Drop
+}
+
+pub fn running_handler(
     msg: &Message,
     gl_ctx: &GLContext,
     pipeline: &WeakRef<Pipeline>,
@@ -18,9 +58,10 @@ pub fn invoke(
         MessageView::NeedContext(nc) => provide_ctx(nc, msg.src(), gl_ctx),
         _ => send_to_slint_event_loop(msg, pipeline, seek_state),
     }
+    BusSyncReply::Drop
 }
 
-fn provide_ctx(msg: &NeedContext, src: Option<&Object>, gl_ctx: &GLContext) -> BusSyncReply {
+fn provide_ctx(msg: &NeedContext, src: Option<&Object>, gl_ctx: &GLContext) {
     if let Some(e) = src.and_then(|s| s.downcast_ref::<Element>()) {
         match msg.context_type() {
             GST_GL_DISPLAY => e.set_context(&dsp_ctx(gl_ctx)),
@@ -28,8 +69,6 @@ fn provide_ctx(msg: &NeedContext, src: Option<&Object>, gl_ctx: &GLContext) -> B
             _ => {}
         }
     }
-
-    BusSyncReply::Drop
 }
 
 const GST_GL_DISPLAY: &str = "gst.gl.GLDisplay";
@@ -55,7 +94,7 @@ fn send_to_slint_event_loop(
     msg: &Message,
     pipeline: &WeakRef<Pipeline>,
     seek_state: &Arc<Mutex<SeekRequestBuffer>>,
-) -> BusSyncReply {
+) {
     let callback = {
         let msg = msg.to_owned();
         let pipeline = pipeline.clone();
@@ -72,7 +111,6 @@ fn send_to_slint_event_loop(
         }
     };
     let _ = slint::invoke_from_event_loop(callback);
-    BusSyncReply::Drop
 }
 
 fn restart_pipeline(pipeline: &WeakRef<Pipeline>) -> Option<()> {

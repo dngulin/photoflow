@@ -1,14 +1,15 @@
+use self::bus_msg_handler::{loading_handler, running_handler};
 use self::framebuffer::FrameBuffer;
 use self::pipeline_ext::{PipelineOwned, PipelineStd};
+use crate::video::bus_msg_handler::LoadingWaiter;
 use anyhow::anyhow;
 use gl_context_slint::GLContextSlint;
-use gstreamer::State;
+use gstreamer::{Bus, Pipeline, State, StateChangeSuccess};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
 use slint::{ComponentHandle, GraphicsAPI, Image, Weak};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::Duration;
 
 mod bus_msg_handler;
@@ -77,24 +78,18 @@ impl Video {
         };
 
         let pipeline = pipeline::create(path, handle_new_frame)?;
-        let seek_state = Arc::new(Mutex::new(SeekRequestBuffer::default()));
-
+        let pipeline = Arc::new(PipelineOwned::new(pipeline));
         let bus = pipeline.bus().ok_or_else(|| anyhow!("No pipline bus"))?;
+
+        wait_pipeline_paused(&pipeline, &bus, gl_ctx)?;
+
+        let seek_state = Arc::new(Mutex::new(SeekRequestBuffer::default()));
         bus.set_sync_handler({
             let gl_ctx = gl_ctx.clone();
             let pipeline = pipeline.downgrade();
             let seek_state = seek_state.clone();
-            move |_bus, msg| bus_msg_handler::invoke(msg, &gl_ctx, &pipeline, &seek_state)
+            move |_bus, msg| running_handler(msg, &gl_ctx, &pipeline, &seek_state)
         });
-
-        pipeline.set_state(State::Paused)?;
-
-        // TODO: wait for a state change in a better way
-        while pipeline.current_state() != State::Paused {
-            thread::sleep(Duration::from_millis(16));
-        }
-
-        let pipeline = Arc::new(PipelineOwned::new(pipeline));
 
         Ok(Self {
             pipeline,
@@ -156,6 +151,21 @@ impl Video {
 
         Some(())
     }
+}
+
+fn wait_pipeline_paused(pipeline: &Pipeline, bus: &Bus, gl_ctx: &GLContext) -> anyhow::Result<()> {
+    let loading_waiter = Arc::new(LoadingWaiter::default());
+    bus.set_sync_handler({
+        let gl_ctx = gl_ctx.clone();
+        let loading_waiter = loading_waiter.clone();
+        move |_bus, msg| loading_handler(msg, &gl_ctx, &loading_waiter)
+    });
+
+    let change = pipeline.set_state(State::Paused)?;
+    if change == StateChangeSuccess::Async {
+        loading_waiter.wait()?;
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
