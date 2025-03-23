@@ -15,6 +15,7 @@ use slint::{ComponentHandle, Image, RenderingState, Weak};
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 pub fn bind_gallery_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyhow::Result<()> {
     {
@@ -34,9 +35,7 @@ pub fn bind_gallery_models(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) -> anyho
 
 pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
     let formatter = app.global::<TimeFormatter>();
-    formatter.on_hh_mm_ss(move |duration_seconds| {
-        util::hh_mm_ss((duration_seconds * 1000.0).round() as u64).into()
-    });
+    formatter.on_hh_mm_ss(move |duration_ms| util::hh_mm_ss(duration_ms as u64).into());
 
     let bridge = app.global::<MediaViewerBridge>();
 
@@ -77,10 +76,10 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
         }
     });
 
-    bridge.on_video_seek_progress({
+    bridge.on_video_seek({
         let curr_video = curr_video.clone();
-        move |progress| {
-            curr_video.seek(progress);
+        move |position| {
+            curr_video.seek(Duration::from_millis(position as u64));
         }
     });
 
@@ -181,7 +180,7 @@ fn on_load_finish(app: PhotoFlowApp, curr_video: CurrentVideo, result: anyhow::R
                 curr_video.set(video);
                 MediaViewerModel {
                     state: ViewerState::Loaded,
-                    video_duration: duration,
+                    video_duration: duration.as_millis() as i64,
                     ..model
                 }
             }
@@ -228,7 +227,7 @@ fn set_video_state(weak_app: &Weak<PhotoFlowApp>, curr_video: &CurrentVideo) -> 
 
     bridge.set_model(MediaViewerModel {
         video_is_playing: video_state.is_playing,
-        video_position: video_state.position,
+        video_position: video_state.position.as_millis() as i64,
         ..model
     });
 
