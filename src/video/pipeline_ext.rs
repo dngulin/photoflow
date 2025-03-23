@@ -1,26 +1,33 @@
 use gstreamer::prelude::*;
 use gstreamer::{ClockTime, Pipeline, SeekFlags, State};
 use std::ops::Deref;
+use std::time::Duration;
 
 pub trait PipelineExt {
-    fn progress(&self) -> anyhow::Result<f32>;
-    fn seek_progress(&self, progress: f32) -> anyhow::Result<()>;
+    fn duration(&self) -> Option<Duration>;
+    fn position(&self) -> Option<Duration>;
+    fn seek(&self, new_pos: Duration) -> anyhow::Result<()>;
 }
 
-impl PipelineExt for Pipeline {
-    fn progress(&self) -> anyhow::Result<f32> {
-        let (dur, pos) = query_dur_and_pos_seconds_f32(self)
-            .ok_or_else(|| anyhow::anyhow!("Failed to query duration and position"))?;
+const ACCURATE_SEEK_THRESHOLD: Duration = Duration::from_secs(10);
 
-        Ok(pos / dur)
+impl PipelineExt for Pipeline {
+    fn duration(&self) -> Option<Duration> {
+        let duration = self.query_duration::<ClockTime>()?;
+        Some(Duration::from_nanos(duration.nseconds()))
     }
 
-    fn seek_progress(&self, progress: f32) -> anyhow::Result<()> {
-        let (dur, pos) = query_dur_and_pos_seconds_f32(self)
-            .ok_or_else(|| anyhow::anyhow!("Failed to query duration and position"))?;
+    fn position(&self) -> Option<Duration> {
+        let position = self.query_position::<ClockTime>()?;
+        Some(Duration::from_nanos(position.nseconds()))
+    }
 
-        let new_pos = (progress * dur).clamp(0.0, dur);
-        let accurate = (pos - new_pos).abs() <= ACCURATE_SEEK_THRESHOLD_SECONDS;
+    fn seek(&self, new_pos: Duration) -> anyhow::Result<()> {
+        let pos = self
+            .position()
+            .ok_or_else(|| anyhow::anyhow!("Failed to query position"))?;
+
+        let accurate = Duration::abs_diff(pos, new_pos) < Duration::from_secs(10);
 
         let flags = if accurate {
             SeekFlags::FLUSH | SeekFlags::ACCURATE
@@ -28,17 +35,9 @@ impl PipelineExt for Pipeline {
             SeekFlags::FLUSH | SeekFlags::KEY_UNIT | SeekFlags::SNAP_NEAREST
         };
 
-        self.seek_simple(flags, ClockTime::from_seconds_f32(new_pos))?;
+        self.seek_simple(flags, ClockTime::from_nseconds(new_pos.as_nanos() as _))?;
         Ok(())
     }
-}
-
-const ACCURATE_SEEK_THRESHOLD_SECONDS: f32 = 10.0;
-
-fn query_dur_and_pos_seconds_f32(pipeline: &Pipeline) -> Option<(f32, f32)> {
-    let dur = pipeline.query_duration::<ClockTime>()?.seconds_f32();
-    let pos = pipeline.query_position::<ClockTime>()?.seconds_f32();
-    Some((dur, pos))
 }
 
 /// Sets pipline state to Null on Drop
