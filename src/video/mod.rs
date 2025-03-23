@@ -2,8 +2,7 @@ use self::framebuffer::FrameBuffer;
 use self::pipeline_ext::{PipelineExt, PipelineOwned};
 use anyhow::anyhow;
 use gl_context_slint::GLContextSlint;
-use gstreamer::prelude::*;
-use gstreamer::{ClockTime, State};
+use gstreamer::State;
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
 use slint::{ComponentHandle, GraphicsAPI, Image, Weak};
@@ -130,15 +129,15 @@ impl Video {
         Ok(())
     }
 
-    pub fn progress(&self) -> Option<f32> {
-        self.pipeline.progress().ok()
+    pub fn position(&self) -> Option<Duration> {
+        self.pipeline.position_std()
     }
 
-    pub fn duration_seconds(&self) -> Option<f32> {
-        Some(self.pipeline.query_duration::<ClockTime>()?.seconds_f32())
+    pub fn duration(&self) -> Option<Duration> {
+        self.pipeline.duration_std()
     }
 
-    pub fn seek(&self, progress: f32, mode: SeekMode) -> Option<()> {
+    pub fn seek(&self, new_pos: Duration, mode: SeekMode) -> Option<()> {
         let mut seek_state = self.seek_state.lock().unwrap();
 
         if mode == SeekMode::Instant {
@@ -146,12 +145,12 @@ impl Video {
         }
 
         if seek_state.current.is_some() {
-            seek_state.pending = Some(progress);
+            seek_state.pending = Some(new_pos);
             return Some(());
         }
 
-        if self.pipeline.seek_progress(progress).is_ok() {
-            seek_state.current = Some(progress);
+        if self.pipeline.seek_std(new_pos).is_ok() {
+            seek_state.current = Some(new_pos);
             seek_state.pending = None;
         }
 
@@ -171,8 +170,8 @@ pub enum SeekMode {
 
 #[derive(Default)]
 struct SeekRequestBuffer {
-    pub current: Option<f32>,
-    pub pending: Option<f32>,
+    pub current: Option<Duration>,
+    pub pending: Option<Duration>,
 }
 
 impl SeekRequestBuffer {

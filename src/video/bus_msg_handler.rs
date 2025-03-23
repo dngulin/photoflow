@@ -96,7 +96,7 @@ fn finish_seeking(
     seek_state.pending = None;
 
     if let Some(progress) = seek_state.current {
-        pipeline.seek_progress(progress).ok()?;
+        pipeline.seek_std(progress).ok()?;
     }
 
     Some(())
