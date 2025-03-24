@@ -30,7 +30,7 @@ impl LoadingWaiter {
         while result.is_none() {
             result = self.cond_var.wait(result).unwrap();
         }
-        result.as_ref().unwrap().clone()
+        result.take().unwrap()
     }
 }
 
