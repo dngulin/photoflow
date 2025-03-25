@@ -134,7 +134,7 @@ impl Video {
         self.pipeline.std_duration()
     }
 
-    pub fn seek(&self, new_pos: Duration, mode: SeekMode) -> Option<()> {
+    pub fn seek(&self, new_pos: Duration, mode: SeekMode) -> anyhow::Result<()> {
         let mut seek_state = self.seek_state.lock().unwrap();
 
         if mode == SeekMode::Instant {
@@ -143,15 +143,14 @@ impl Video {
 
         if seek_state.current.is_some() {
             seek_state.pending = Some(new_pos);
-            return Some(());
+            return Ok(());
         }
 
-        if self.pipeline.std_seek(new_pos).is_ok() {
-            seek_state.current = Some(new_pos);
-            seek_state.pending = None;
-        }
+        self.pipeline.std_seek(new_pos)?;
+        seek_state.current = Some(new_pos);
+        seek_state.pending = None;
 
-        Some(())
+        Ok(())
     }
 }
 

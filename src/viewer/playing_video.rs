@@ -52,7 +52,9 @@ impl CurrentVideo {
 
     pub fn seek(&self, new_pos: Duration) {
         if let Some(video) = self.inner() {
-            video.seek(new_pos, SeekMode::Buffered);
+            if let Err(e) = video.seek(new_pos, SeekMode::Buffered) {
+                log::error!("Failed to execute seek request: {}", e);
+            }
         }
     }
 }

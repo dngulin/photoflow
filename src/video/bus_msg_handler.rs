@@ -129,14 +129,13 @@ fn finish_seeking(
     let pipeline = pipeline.upgrade()?;
 
     let mut seek_state = seek_state.lock().unwrap();
-    if seek_state.current.is_some() {
-        seek_state.current = seek_state.pending.take();
-    }
-
-    seek_state.pending = None;
+    seek_state.current = seek_state.pending.take();
 
     if let Some(progress) = seek_state.current {
-        pipeline.std_seek(progress).ok()?;
+        if let Err(e) = pipeline.std_seek(progress) {
+            log::error!("Failed to execute pending seek request: {}", e);
+            seek_state.current = None;
+        }
     }
 
     Some(())
