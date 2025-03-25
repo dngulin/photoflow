@@ -12,8 +12,8 @@ use std::sync::{Arc, Condvar, Mutex};
 
 #[derive(Default)]
 pub struct AsyncDoneWaiter {
-    pub cond_var: Condvar,
-    pub result: Mutex<Option<Result<(), glib::Error>>>,
+    cond_var: Condvar,
+    result: Mutex<Option<Result<(), glib::Error>>>,
 }
 
 impl AsyncDoneWaiter {
