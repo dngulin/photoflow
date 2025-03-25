@@ -60,6 +60,8 @@ impl Deref for PipelineOwned {
 
 impl Drop for PipelineOwned {
     fn drop(&mut self) {
-        let _ = self.set_state(State::Null);
+        if let Err(e) = self.set_state(State::Null) {
+            log::error!("Failed to cleanup gstreamer pipeline: {}", e);
+        }
     }
 }

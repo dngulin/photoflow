@@ -25,7 +25,9 @@ pub struct VideoLoader {
 
 impl Drop for VideoLoader {
     fn drop(&mut self) {
-        let _ = self.gl_ctx.activate(false);
+        if let Err(e) = self.gl_ctx.activate(false) {
+            log::error!("Failed to deactivate OpenGL context: {}", e);
+        }
     }
 }
 
