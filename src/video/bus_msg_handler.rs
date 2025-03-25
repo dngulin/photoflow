@@ -11,12 +11,12 @@ use gstreamer_gl::GLContext;
 use std::sync::{Arc, Condvar, Mutex};
 
 #[derive(Default)]
-pub struct LoadingWaiter {
+pub struct AsyncDoneWaiter {
     pub cond_var: Condvar,
     pub result: Mutex<Option<Result<(), glib::Error>>>,
 }
 
-impl LoadingWaiter {
+impl AsyncDoneWaiter {
     pub fn set_result(&self, value: Result<(), glib::Error>) {
         let mut result = self.result.lock().unwrap();
         if result.is_none() {
@@ -34,10 +34,10 @@ impl LoadingWaiter {
     }
 }
 
-pub fn loading_handler(
+pub fn async_done_waiting_handler(
     msg: &Message,
     gl_ctx: &GLContext,
-    waiter: &Arc<LoadingWaiter>,
+    waiter: &Arc<AsyncDoneWaiter>,
 ) -> BusSyncReply {
     match msg.view() {
         MessageView::NeedContext(nc) => provide_ctx(nc, msg.src(), gl_ctx),

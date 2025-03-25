@@ -1,10 +1,10 @@
-use self::bus_msg_handler::{loading_handler, running_handler};
+use self::bus_msg_handler::{async_done_waiting_handler, running_handler};
 use self::framebuffer::FrameBuffer;
 use self::pipeline_ext::{PipelineOwned, PipelineStd};
-use crate::video::bus_msg_handler::LoadingWaiter;
+use crate::video::bus_msg_handler::AsyncDoneWaiter;
 use anyhow::anyhow;
 use gl_context_slint::GLContextSlint;
-use gstreamer::{Bus, Pipeline, State, StateChangeSuccess};
+use gstreamer::{Pipeline, State, StateChangeSuccess};
 use gstreamer_gl::prelude::*;
 use gstreamer_gl::GLContext;
 use slint::{ComponentHandle, GraphicsAPI, Image, Weak};
@@ -54,6 +54,72 @@ impl VideoLoader {
     pub fn load(&self, path: &Path) -> anyhow::Result<Video> {
         Video::new(path, &self.gl_ctx, self.request_redraw.clone())
     }
+
+    pub fn thumbnailer(&self, path: &Path) -> anyhow::Result<Thumbnailer> {
+        Thumbnailer::new(path, &self.gl_ctx)
+    }
+}
+
+#[derive(Clone)]
+pub struct Thumbnailer {
+    pipeline: Arc<PipelineOwned>,
+    waiter: Arc<AsyncDoneWaiter>,
+    fb: Arc<Mutex<FrameBuffer>>,
+}
+
+impl Thumbnailer {
+    pub fn new(path: &Path, gl_ctx: &GLContext) -> anyhow::Result<Self> {
+        let fb = FrameBuffer::new(gl_ctx.clone());
+        let fb = Arc::new(Mutex::new(fb));
+
+        let handle_new_frame = {
+            let fb = fb.clone();
+            move |buffer, info| {
+                fb.lock().unwrap().set_next_frame_data(buffer, info);
+            }
+        };
+
+        let pipeline = pipeline::create(path, handle_new_frame)?;
+        let pipeline = Arc::new(PipelineOwned::new(pipeline));
+        let bus = pipeline.bus().ok_or_else(|| anyhow!("No pipline bus"))?;
+
+        let waiter = Arc::new(AsyncDoneWaiter::default());
+        bus.set_sync_handler({
+            let gl_ctx = gl_ctx.clone();
+            let waiter = waiter.clone();
+            move |_bus, msg| async_done_waiting_handler(msg, &gl_ctx, &waiter)
+        });
+
+        Ok(Self {
+            pipeline,
+            waiter,
+            fb,
+        })
+    }
+
+    pub fn wait_initialized(&self) -> anyhow::Result<()> {
+        if self.pipeline.current_state() != State::Paused {
+            let change = self.pipeline.set_state(State::Paused)?;
+            if change == StateChangeSuccess::Async {
+                self.waiter.wait()?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn seek(&self, new_pos: Duration) -> anyhow::Result<()> {
+        self.wait_initialized()?;
+        self.pipeline.std_seek(new_pos)?;
+        self.waiter.wait()?;
+        Ok(())
+    }
+
+    pub fn get_frame(&self) -> Option<Image> {
+        self.wait_initialized().ok()?;
+        let mut fb = self.fb.lock().unwrap();
+        fb.fetch_next_frame_data();
+        fb.current_frame_copy()
+    }
 }
 
 #[derive(Clone)]
@@ -85,7 +151,16 @@ impl Video {
         let pipeline = Arc::new(PipelineOwned::new(pipeline));
         let bus = pipeline.bus().ok_or_else(|| anyhow!("No pipline bus"))?;
 
-        wait_pipeline_paused(&pipeline, &bus, gl_ctx)?;
+        let waiter = Arc::new(AsyncDoneWaiter::default());
+        bus.set_sync_handler({
+            let gl_ctx = gl_ctx.clone();
+            let waiter = waiter.clone();
+            move |_bus, msg| async_done_waiting_handler(msg, &gl_ctx, &waiter)
+        });
+        let change = pipeline.set_state(State::Paused)?;
+        if change == StateChangeSuccess::Async {
+            waiter.wait()?;
+        }
 
         let seek_state = Arc::new(Mutex::new(SeekRequestBuffer::default()));
         bus.set_sync_handler({
@@ -154,21 +229,6 @@ impl Video {
 
         Ok(())
     }
-}
-
-fn wait_pipeline_paused(pipeline: &Pipeline, bus: &Bus, gl_ctx: &GLContext) -> anyhow::Result<()> {
-    let loading_waiter = Arc::new(LoadingWaiter::default());
-    bus.set_sync_handler({
-        let gl_ctx = gl_ctx.clone();
-        let loading_waiter = loading_waiter.clone();
-        move |_bus, msg| loading_handler(msg, &gl_ctx, &loading_waiter)
-    });
-
-    let change = pipeline.set_state(State::Paused)?;
-    if change == StateChangeSuccess::Async {
-        loading_waiter.wait()?;
-    }
-    Ok(())
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
