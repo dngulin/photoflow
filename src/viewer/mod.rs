@@ -182,8 +182,8 @@ fn on_load_finish(app: PhotoFlowApp, curr_video: CurrentVideo, result: anyhow::R
             },
             Media::Video(video) => {
                 let duration = video.duration().unwrap_or_default();
-                let _ = video.set_playing(true);
                 curr_video.set(video);
+                curr_video.set_playing(true);
                 MediaViewerModel {
                     state: ViewerState::Loaded,
                     video_duration: duration.as_millis() as i64,

@@ -34,7 +34,13 @@ impl CurrentVideo {
 
     pub fn set_playing(&self, playing_state: bool) {
         if let Some(video) = self.inner() {
-            let _ = video.set_playing(playing_state);
+            if let Err(e) = video.set_playing(playing_state) {
+                log::error!(
+                    "Failed to set video playing state to {}: {}",
+                    playing_state,
+                    e
+                );
+            }
         }
     }
 
