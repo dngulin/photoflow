@@ -26,8 +26,9 @@ pub fn update_index_bg(
 ) {
     rayon::spawn(move || {
         if let Err(e) = update_index(sources, db, weak_app.clone(), on_start, on_finish) {
+            log::error!("Update Index error: {}", e);
             let _ = weak_app.upgrade_in_event_loop(move |app| {
-                app.set_indexing_error(format!("{:#}", e).into());
+                app.set_indexing_error(format!("{}", e).into());
             });
         }
     });
@@ -94,8 +95,8 @@ fn index_parallel(db: &Mutex<IndexDb>, paths: &HashSet<PathBuf>, weak_app: Weak<
 
     paths.par_iter().for_each(move |path| {
         if let Err(e) = index_file(path, db, &media_parser) {
-            println!(
-                "Failed to index `{}`: {}",
+            log::error!(
+                "Failed to index file `{}`: {}",
                 path.to_str().unwrap_or_default(),
                 e
             );

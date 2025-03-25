@@ -25,6 +25,8 @@ pub mod ui {
 }
 
 fn main() -> anyhow::Result<()> {
+    env_logger::init();
+
     let config_path = std::env::args()
         .nth(1)
         .ok_or(anyhow::anyhow!("Usage: photoflow <DB_CONFIG_PATH>"))?;
@@ -43,17 +45,22 @@ fn main() -> anyhow::Result<()> {
 
     viewer::bind_media_viewer(&app, db.clone());
 
+    log::info!("Evaluating media files count...");
     app.set_mode(Mode::PreIndexing);
     indexer::update_index_bg(
         config.sources,
         db.clone(),
         app.as_weak(),
         move |app, count| {
+            log::info!("Media files count: {}. Start indexing...", count);
             app.set_indexing_total(count);
             app.set_mode(Mode::Indexing);
         },
         move |app| {
-            let _ = viewer::bind_gallery_models(&app, db);
+            log::info!("Indexing finished!");
+            if let Err(e) = viewer::bind_gallery_models(&app, db) {
+                log::error!("Failed to bind gallery models: {}", e);
+            }
             app.set_mode(Mode::Gallery);
         },
     );
@@ -71,7 +78,9 @@ fn setup_app_window(app: &PhotoFlowApp) {
     let weak_app = app.as_weak();
     app.on_close(move || {
         if let Some(app) = weak_app.upgrade() {
-            let _ = app.window().hide();
+            if let Err(e) = app.window().hide() {
+                log::error!("Failed to hide window: {}", e);
+            }
         }
     });
 }

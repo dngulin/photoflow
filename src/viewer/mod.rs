@@ -48,7 +48,9 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
         let loader = loader.clone();
         let curr_video = curr_video.clone();
         move |idx| {
-            let _ = load(&app_weak, &loader, idx as usize, &curr_video);
+            if let Err(e) = load(&app_weak, &loader, idx as usize, &curr_video) {
+                log::error!("Failed to load media ({}): {}", idx, e);
+            }
         }
     });
 
@@ -90,11 +92,15 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
             let playing = curr_video.clone();
 
             move |state, api| match state {
-                RenderingState::RenderingSetup => {
-                    if let Ok(loader) = VideoLoader::new(app_weak.clone(), api) {
+                RenderingState::RenderingSetup => match VideoLoader::new(app_weak.clone(), api) {
+                    Ok(loader) => {
+                        log::info!("Video loader initialized");
                         video_loader.lock().unwrap().replace(loader);
                     }
-                }
+                    Err(e) => {
+                        log::error!("Failed to initialize video loader: {}", e);
+                    }
+                },
                 RenderingState::BeforeRendering => {
                     if let Some(frame) = playing.curr_video_gl_frame() {
                         try_set_bridge_image(&app_weak, frame);

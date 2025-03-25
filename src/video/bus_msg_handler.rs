@@ -110,7 +110,9 @@ fn send_to_slint_event_loop(
             _ => {}
         }
     };
-    let _ = slint::invoke_from_event_loop(callback);
+    if let Err(e) = slint::invoke_from_event_loop(callback) {
+        log::error!("Failed to pass gst event to the Slint event loop: {}", e);
+    }
 }
 
 fn restart_pipeline(pipeline: &WeakRef<Pipeline>) -> Option<()> {

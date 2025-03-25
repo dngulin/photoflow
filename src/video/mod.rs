@@ -36,9 +36,11 @@ impl VideoLoader {
     ) -> anyhow::Result<Self> {
         let gl_ctx = GLContext::from_slint_graphics_api(api)?;
         let request_redraw = Arc::new(move || {
-            let _ = app_weak.upgrade_in_event_loop(|app| {
+            if let Err(e) = app_weak.upgrade_in_event_loop(move |app| {
                 app.window().request_redraw();
-            });
+            }) {
+                log::error!("Failed to request window redraw: {}", e);
+            };
         });
 
         Ok(Self {
