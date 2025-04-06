@@ -3,6 +3,7 @@ use crate::image_loader::DecodedImage;
 use crate::media::MediaType;
 use anyhow::anyhow;
 use gstreamer::prelude::{Cast, ElementExt, GstBinExt, IsA, ObjectExt};
+use gstreamer::FlowSuccess;
 use gstreamer_app::{AppSink, AppSinkCallbacks};
 use gstreamer_video::{VideoCapsBuilder, VideoFormat, VideoFrameExt, VideoFrameRef, VideoInfo};
 use image::flat::NormalForm;
@@ -19,7 +20,7 @@ pub fn open<P: AsRef<Path>>(path: P, mt: &MediaType) -> anyhow::Result<DecodedIm
 
 fn get_video_preview<P: AsRef<Path>>(path: P) -> anyhow::Result<DecodedImage> {
     const GST_PIPELINE: &str =
-        "filesrc name=src ! decodebin ! videoflip method=automatic ! videoconvert ! appsink name=sink";
+        "filesrc name=src ! decodebin ! videoconvert ! videoflip method=automatic ! appsink name=sink";
     let pipeline = gstreamer::parse::launch(GST_PIPELINE)?
         .downcast::<gstreamer::Pipeline>()
         .map_err(|_| anyhow!("Failed to downcast a pipeline"))?;
@@ -28,9 +29,6 @@ fn get_video_preview<P: AsRef<Path>>(path: P) -> anyhow::Result<DecodedImage> {
     src.set_property("location", path.as_ref());
 
     let sink = pipeline.get::<AppSink>("sink")?;
-    sink.set_property("sync", false);
-    sink.set_property("wait-on-eos", false);
-
     let caps = VideoCapsBuilder::new().format(VideoFormat::Rgb).build();
     sink.set_caps(Some(&caps));
 
@@ -38,15 +36,11 @@ fn get_video_preview<P: AsRef<Path>>(path: P) -> anyhow::Result<DecodedImage> {
 
     {
         let result = result.clone();
-        let mut sample_taken = false;
 
         let callbacks = AppSinkCallbacks::builder()
-            .new_sample(move |app_sink| {
-                if !sample_taken {
-                    *result.lock().unwrap() = decode_sample(app_sink);
-                    sample_taken = true;
-                }
-                Err(gstreamer::FlowError::Eos)
+            .new_preroll(move |app_sink| {
+                *result.lock().unwrap() = decode_sample(app_sink);
+                Ok(FlowSuccess::Ok)
             })
             .build();
 
@@ -58,17 +52,10 @@ fn get_video_preview<P: AsRef<Path>>(path: P) -> anyhow::Result<DecodedImage> {
         .ok_or_else(|| anyhow!("Failed to get bus from pipeline"))?;
 
     pipeline.set_state(gstreamer::State::Paused)?;
-    let mut play_mode = false;
 
     for msg in bus.iter_timed(gstreamer::ClockTime::NONE) {
         match msg.view() {
             gstreamer::MessageView::AsyncDone(..) => {
-                if !play_mode {
-                    play_mode = true;
-                    pipeline.set_state(gstreamer::State::Playing)?;
-                }
-            }
-            gstreamer::MessageView::Eos(..) => {
                 break;
             }
             gstreamer::MessageView::Error(e) => {
@@ -89,7 +76,7 @@ fn get_video_preview<P: AsRef<Path>>(path: P) -> anyhow::Result<DecodedImage> {
 }
 
 fn decode_sample(sink: &AppSink) -> Option<DynamicImage> {
-    let sample = sink.pull_sample().ok()?;
+    let sample = sink.pull_preroll().ok()?;
 
     let caps = sample.caps()?;
     let buffer = sample.buffer()?;
