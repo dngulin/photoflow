@@ -3025,10 +3025,11 @@ dependencies = [
 
 [[package]]
 name = "libheif-rs"
-version = "1.1.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4a26370abb4723a3ce73083e479b98017604206cadb0e35da5eac4813600d85"
+checksum = "e6983874bba8c3f28525e908758a3988849fdc3fdc98c692bc884aa078aa190e"
 dependencies = [
+ "cfg-if",
  "enumn",
  "four-cc",
  "libc",
@@ -3037,12 +3038,13 @@ dependencies = [
 
 [[package]]
 name = "libheif-sys"
-version = "3.1.0+1.18.2"
+version = "4.0.1+1.19.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e663db80d4272b60c066c5a9d17370ffa0433a31d424152f95f1e1effb9b3860"
+checksum = "74b43147735674a19d2390795e980900d9cca0d7b5fff08b7095adb3c7a15826"
 dependencies = [
+ "cfg-if",
  "libc",
- "pkg-config",
+ "system-deps 7.0.3",
  "vcpkg",
  "walkdir",
 ]
