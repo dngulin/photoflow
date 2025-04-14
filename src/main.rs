@@ -27,14 +27,14 @@ pub mod ui {
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let config_path = std::env::args()
-        .nth(1)
-        .ok_or(anyhow::anyhow!("Usage: photoflow <DB_CONFIG_PATH>"))?;
+    let xdg_dirs = xdg::BaseDirectories::new()?;
 
+    let config_path = xdg_dirs.get_config_file("photoflow.toml");
     let config = fs::read_to_string(&config_path)?;
     let config = toml::from_str::<Config>(&config)?;
 
-    let db = IndexDb::open(config.db_path)?;
+    let db_path = xdg_dirs.get_data_file("photoflow.db");
+    let db = IndexDb::open(db_path)?;
     let db = Arc::new(Mutex::new(db));
 
     gstreamer::init()?;
