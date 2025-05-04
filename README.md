@@ -46,7 +46,8 @@ sources = [
 
 ## Build
 
-The launcher is written in Rust, so it is built with `cargo`. It uses `Slint` as a graphical toolkit
+The application is written in Rust, so it is built with `cargo`. It uses `Slint` as a graphical
+toolkit
 and uses `winit` as a backend
 (required to work with windowing API not provided by `Slint`).
 
