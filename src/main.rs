@@ -76,7 +76,7 @@ fn main() -> anyhow::Result<()> {
 
 fn setup_app_window(app: &PhotoFlowApp) {
     let window = app.window();
-    //window.set_fullscreen(true);
+    window.set_fullscreen(true);
     window.hide_cursor();
 
     let weak_app = app.as_weak();
