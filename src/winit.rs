@@ -17,7 +17,8 @@ pub enum DisplayServer {
 
 impl WinitWindow for Window {
     fn has_focus(&self) -> bool {
-        self.with_winit_window(|ww| ww.has_focus()).unwrap()
+        self.with_winit_window(|ww| ww.has_focus())
+            .unwrap_or_default()
     }
 
     fn hide_cursor(&self) {
