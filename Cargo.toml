@@ -19,14 +19,14 @@ gstreamer-app = "0.23"
 gstreamer-video = "0.23"
 gstreamer-gl = "0.23"
 image = "0.25"
-i-slint-backend-winit = "=1.10.0"
+i-slint-backend-winit = "=1.12.1"
 libheif-rs = { version = "2.2", default-features = false, features = ["v1_17"] }
 nom-exif = "2.5"
 rayon = "1.10"
 rusqlite = "0.34"
 serde = "1.0"
 serde_derive = "1.0"
-slint = { version = "=1.10.0", default-features = false, features = ["renderer-femtovg", "compat-1-2"] }
+slint = { version = "=1.12.1", default-features = false, features = ["renderer-femtovg", "compat-1-2"] }
 toml = "0.8"
 walkdir = "2.5"
 xdg = "2.5"
@@ -37,4 +37,4 @@ glutin_glx_sys = { version = "0.6", optional = true }
 
 
 [build-dependencies]
-slint-build = "=1.10.0"
+slint-build = "=1.12.1"
