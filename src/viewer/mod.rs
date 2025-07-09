@@ -49,7 +49,7 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
         let curr_video = curr_video.clone();
         move |idx| {
             if let Err(e) = load(&app_weak, &loader, idx as usize, &curr_video) {
-                log::error!("Failed to load media ({}): {}", idx, e);
+                log::error!("Failed to load media ({idx}): {e}");
             }
         }
     });
@@ -98,7 +98,7 @@ pub fn bind_media_viewer(app: &PhotoFlowApp, db: Arc<Mutex<IndexDb>>) {
                         video_loader.lock().unwrap().replace(loader);
                     }
                     Err(e) => {
-                        log::error!("Failed to initialize video loader: {}", e);
+                        log::error!("Failed to initialize video loader: {e}");
                     }
                 },
                 RenderingState::BeforeRendering => {

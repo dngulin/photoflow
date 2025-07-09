@@ -25,7 +25,7 @@ pub struct VideoLoader {
 impl Drop for VideoLoader {
     fn drop(&mut self) {
         if let Err(e) = self.gl_ctx.activate(false) {
-            log::error!("Failed to deactivate OpenGL context: {}", e);
+            log::error!("Failed to deactivate OpenGL context: {e}");
         }
     }
 }
@@ -44,7 +44,7 @@ impl VideoLoader {
             if let Err(e) = app_weak.upgrade_in_event_loop(move |app| {
                 app.window().request_redraw();
             }) {
-                log::error!("Failed to request window redraw: {}", e);
+                log::error!("Failed to request window redraw: {e}");
             };
         });
 

@@ -7,8 +7,8 @@ pub fn hh_mm_ss(duration_ms: u64) -> String {
     let minutes = minutes_total % 60;
 
     if hours_total > 0 {
-        format!("{:02}:{:02}:{:02}", hours_total, minutes, seconds)
+        format!("{hours_total:02}:{minutes:02}:{seconds:02}")
     } else {
-        format!("{:02}:{:02}", minutes, seconds)
+        format!("{minutes:02}:{seconds:02}")
     }
 }

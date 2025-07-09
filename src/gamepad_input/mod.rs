@@ -25,7 +25,7 @@ impl GamepadInputListener {
             .with_default_filters(false)
             .set_update_state(false)
             .build()
-            .map_err(|error| format!("Failed to init gamepad input backend: {}", error))?;
+            .map_err(|error| format!("Failed to init gamepad input backend: {error}"))?;
 
         let map = map.into();
 

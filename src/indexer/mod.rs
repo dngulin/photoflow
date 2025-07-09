@@ -26,9 +26,9 @@ pub fn update_index_bg(
 ) {
     rayon::spawn(move || {
         if let Err(e) = update_index(sources, db, weak_app.clone(), on_start, on_finish) {
-            log::error!("Update Index error: {}", e);
+            log::error!("Update Index error: {e}");
             let _ = weak_app.upgrade_in_event_loop(move |app| {
-                app.set_indexing_error(format!("{}", e).into());
+                app.set_indexing_error(format!("{e}").into());
             });
         }
     });

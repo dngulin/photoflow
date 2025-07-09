@@ -56,14 +56,14 @@ fn main() -> anyhow::Result<()> {
         db.clone(),
         app.as_weak(),
         move |app, count| {
-            log::info!("Media files count: {}. Start indexing...", count);
+            log::info!("Media files count: {count}. Start indexing...");
             app.set_indexing_total(count);
             app.set_mode(Mode::Indexing);
         },
         move |app| {
             log::info!("Indexing finished!");
             if let Err(e) = viewer::bind_gallery_models(&app, db) {
-                log::error!("Failed to bind gallery models: {}", e);
+                log::error!("Failed to bind gallery models: {e}");
             }
             app.set_mode(Mode::Gallery);
         },
@@ -76,14 +76,14 @@ fn main() -> anyhow::Result<()> {
 
 fn setup_app_window(app: &PhotoFlowApp) {
     let window = app.window();
-    window.set_fullscreen(true);
+    //window.set_fullscreen(true);
     window.hide_cursor();
 
     let weak_app = app.as_weak();
     app.on_close(move || {
         if let Some(app) = weak_app.upgrade() {
             if let Err(e) = app.window().hide() {
-                log::error!("Failed to hide window: {}", e);
+                log::error!("Failed to hide window: {e}");
             }
         }
     });

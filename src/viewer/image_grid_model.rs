@@ -200,7 +200,7 @@ impl ViewModelInner {
                 self.entries.insert(db_idx, t);
             }
             Err(e) => {
-                log::error!("Failed to get thumbnail ({}): {}", db_idx, e);
+                log::error!("Failed to get thumbnail ({db_idx}): {e}");
             }
         };
     }

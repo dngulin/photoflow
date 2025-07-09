@@ -111,7 +111,7 @@ fn send_to_slint_event_loop(
         }
     };
     if let Err(e) = slint::invoke_from_event_loop(callback) {
-        log::error!("Failed to pass gst event to the Slint event loop: {}", e);
+        log::error!("Failed to pass gst event to the Slint event loop: {e}");
     }
 }
 
@@ -133,7 +133,7 @@ fn finish_seeking(
 
     if let Some(progress) = seek_state.current {
         if let Err(e) = pipeline.std_seek(progress) {
-            log::error!("Failed to execute pending seek request: {}", e);
+            log::error!("Failed to execute pending seek request: {e}");
             seek_state.current = None;
         }
     }
