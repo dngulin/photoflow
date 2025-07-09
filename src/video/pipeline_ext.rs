@@ -3,7 +3,7 @@ use gstreamer::{ClockTime, Pipeline, SeekFlags, State};
 use std::ops::Deref;
 use std::time::Duration;
 
-/// Extension methods for Pipline that use standard library types
+/// Extension methods for Pipeline that use standard library types
 pub trait PipelineStd {
     fn std_duration(&self) -> Option<Duration>;
     fn std_position(&self) -> Option<Duration>;
@@ -41,7 +41,7 @@ impl PipelineStd for Pipeline {
     }
 }
 
-/// Sets pipline state to Null on Drop
+/// Sets pipeline state to Null on Drop
 pub struct PipelineOwned(Pipeline);
 
 impl PipelineOwned {
@@ -61,7 +61,7 @@ impl Deref for PipelineOwned {
 impl Drop for PipelineOwned {
     fn drop(&mut self) {
         if let Err(e) = self.set_state(State::Null) {
-            log::error!("Failed to cleanup gstreamer pipeline: {e}");
+            log::error!("Failed to clean up gstreamer pipeline: {e}");
         }
     }
 }
