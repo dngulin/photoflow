@@ -27,13 +27,17 @@ pub mod ui {
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let xdg_dirs = xdg::BaseDirectories::new()?;
+    let xdg_dirs = xdg::BaseDirectories::new();
 
-    let config_path = xdg_dirs.get_config_file("photoflow.toml");
+    let config_path = xdg_dirs
+        .get_config_file("photoflow.toml")
+        .ok_or_else(|| anyhow::anyhow!("Failed to get config file path"))?;
     let config = fs::read_to_string(&config_path)?;
     let config = toml::from_str::<Config>(&config)?;
 
-    let db_path = xdg_dirs.get_data_file("photoflow.db");
+    let db_path = xdg_dirs
+        .get_data_file("photoflow.db")
+        .ok_or_else(|| anyhow::anyhow!("Failed to get database file path"))?;
     let db = IndexDb::open(db_path)?;
     let db = Arc::new(Mutex::new(db));
 
