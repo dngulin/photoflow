@@ -35,7 +35,11 @@ impl VideoLoader {
         app_weak: Weak<TApp>,
         api: &GraphicsAPI,
     ) -> anyhow::Result<Self> {
-        let gl_ctx = GLContext::from_slint_graphics_api(api)?;
+        let app = app_weak
+            .upgrade()
+            .ok_or_else(|| anyhow::anyhow!("Failed to upgrade weak app handle"))?;
+
+        let gl_ctx = GLContext::from_slint_graphics_api(api, app.window())?;
         let request_redraw = Arc::new(move || {
             if let Err(e) = app_weak.upgrade_in_event_loop(move |app| {
                 app.window().request_redraw();
