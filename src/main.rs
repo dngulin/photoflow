@@ -3,6 +3,7 @@ use crate::db::IndexDb;
 use crate::gamepad_input::{GamepadInputListener, KeyMap};
 use crate::ui::{GamepadKey, Mode, PhotoFlowApp};
 use crate::winit::WinitWindow;
+use anyhow::anyhow;
 use slint::{ComponentHandle, Timer, TimerMode};
 use std::fs;
 use std::sync::{Arc, Mutex};
@@ -29,16 +30,20 @@ fn main() -> anyhow::Result<()> {
 
     let xdg_dirs = xdg::BaseDirectories::new();
 
-    let config_path = xdg_dirs
+    let cfg_path = xdg_dirs
         .get_config_file("photoflow.toml")
-        .ok_or_else(|| anyhow::anyhow!("Failed to get config file path"))?;
-    let config = fs::read_to_string(&config_path)?;
-    let config = toml::from_str::<Config>(&config)?;
-
+        .ok_or_else(|| anyhow!("Failed to get config file path"))?;
     let db_path = xdg_dirs
         .get_data_file("photoflow.db")
-        .ok_or_else(|| anyhow::anyhow!("Failed to get database file path"))?;
-    let db = IndexDb::open(db_path)?;
+        .ok_or_else(|| anyhow!("Failed to get database file path"))?;
+
+    let config = fs::read_to_string(&cfg_path)
+        .map_err(|e| anyhow!("Failed to read config file `{}`: {e}", cfg_path.display()))?;
+    let config = toml::from_str::<Config>(&config)
+        .map_err(|e| anyhow!("Failed to parse config file `{}`: {e}", cfg_path.display()))?;
+
+    let db = IndexDb::open(&db_path)
+        .map_err(|e| anyhow!("Failed to open database file `{}`: {e}", db_path.display()))?;
     let db = Arc::new(Mutex::new(db));
 
     gstreamer::init()?;
