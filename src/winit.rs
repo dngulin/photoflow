@@ -17,8 +17,7 @@ pub enum DisplayServer {
 
 impl WinitWindow for Window {
     fn has_focus(&self) -> bool {
-        self.with_winit_window(|ww| ww.has_focus())
-            .unwrap_or_default()
+        self.with_winit_window(|ww| ww.has_focus()).unwrap_or(false)
     }
 
     fn hide_cursor(&self) {
@@ -40,7 +39,7 @@ impl WinitWindow for Window {
             #[cfg(feature = "wayland")]
             RawDisplayHandle::Wayland(_) => Ok(DisplayServer::Wayland),
 
-            _ => anyhow::bail!("Unsupported display server"),
+            _ => anyhow::bail!("Unsupported display server {:?}", handle),
         }
     }
 }

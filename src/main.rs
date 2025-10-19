@@ -82,7 +82,9 @@ fn main() -> anyhow::Result<()> {
 fn setup_app_window(app: &PhotoFlowApp) {
     let window = app.window();
     window.set_fullscreen(true);
-    window.hide_cursor();
+    _ = app
+        .as_weak()
+        .upgrade_in_event_loop(move |app| app.window().hide_cursor());
 
     let weak_app = app.as_weak();
     app.on_close(move || {
