@@ -16,15 +16,15 @@ pub struct MediaLoader {
 
 // Mutex lock wrappers
 impl MediaLoader {
-    fn db(&self) -> MutexGuard<IndexDb> {
+    fn db(&self) -> MutexGuard<'_, IndexDb> {
         self.db.lock().unwrap()
     }
 
-    fn video_loader(&self) -> MutexGuard<Option<VideoLoader>> {
+    fn video_loader(&self) -> MutexGuard<'_, Option<VideoLoader>> {
         self.video_loader.lock().unwrap()
     }
 
-    fn requested_idx(&self) -> MutexGuard<Option<usize>> {
+    fn requested_idx(&self) -> MutexGuard<'_, Option<usize>> {
         self.requested_idx.lock().unwrap()
     }
 }
