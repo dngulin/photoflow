@@ -42,7 +42,7 @@ impl MediaMetadata {
                     orientation: exif
                         .get(ExifTag::Orientation)
                         .and_then(|e| e.as_u16())
-                        .and_then(|u| (u as u64).try_into().ok())
+                        .and_then(|u| (u as i64).try_into().ok())
                         .unwrap_or_default(),
                 });
             }

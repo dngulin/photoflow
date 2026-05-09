@@ -86,8 +86,8 @@ impl IndexDb {
 
     pub fn get_path_metadata_and_thumbnail(
         &self,
-        index: usize,
-    ) -> rusqlite::Result<(String, u64, Vec<u8>)> {
+        index: i64,
+    ) -> rusqlite::Result<(String, i64, Vec<u8>)> {
         self.conn.query_row(
             "SELECT path, metadata, thumbnail FROM media WHERE rowid=(SELECT id FROM media_order WHERE rowid=?1)",
             [index + 1],
@@ -95,7 +95,7 @@ impl IndexDb {
         )
     }
 
-    pub fn get_path_and_metadata(&self, index: usize) -> rusqlite::Result<(String, u64)> {
+    pub fn get_path_and_metadata(&self, index: i64) -> rusqlite::Result<(String, i64)> {
         self.conn.query_row(
             "SELECT path, metadata FROM media WHERE rowid=(SELECT id FROM media_order WHERE rowid=?1)",
             [index + 1],
@@ -103,7 +103,7 @@ impl IndexDb {
         )
     }
 
-    pub fn get_item_count(&self) -> rusqlite::Result<usize> {
+    pub fn get_item_count(&self) -> rusqlite::Result<i64> {
         self.conn
             .query_row("SELECT COUNT(id) FROM media_order", (), |row| row.get(0))
     }
@@ -113,6 +113,6 @@ pub struct InsertionEntry<'a> {
     pub path: &'a str,
     pub finfo: &'a str,
     pub timestamp: i64,
-    pub metadata: u64,
+    pub metadata: i64,
     pub thumbnail: &'a [u8],
 }

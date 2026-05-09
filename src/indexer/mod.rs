@@ -6,8 +6,8 @@ use crate::media::{MediaMetadata, MediaType};
 use crate::ui::PhotoFlowApp;
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use image::codecs::jpeg::JpegEncoder;
 use image::DynamicImage;
+use image::codecs::jpeg::JpegEncoder;
 use nom_exif::MediaParser;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use slint::Weak;
@@ -158,10 +158,10 @@ fn index_file<P: AsRef<Path>>(
     Ok(())
 }
 
-fn db_meta(metadata: &MediaMetadata) -> u64 {
+fn db_meta(metadata: &MediaMetadata) -> i64 {
     match metadata {
         MediaMetadata::Image { orientation, .. } => (*orientation).into(),
-        MediaMetadata::Video { duration_ms, .. } => *duration_ms,
+        MediaMetadata::Video { duration_ms, .. } => *duration_ms as i64,
     }
 }
 

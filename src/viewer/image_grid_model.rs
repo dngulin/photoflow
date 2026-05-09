@@ -3,8 +3,8 @@ use crate::media::MediaType;
 use crate::ui::ImageGridItem;
 use crate::util;
 use anyhow::anyhow;
-use image::codecs::jpeg::JpegDecoder;
 use image::ImageDecoder;
+use image::codecs::jpeg::JpegDecoder;
 use slint::{Image, Model, ModelNotify, ModelTracker, Rgb8Pixel, SharedPixelBuffer, SharedString};
 use std::any::Any;
 use std::cell::RefCell;
@@ -208,7 +208,7 @@ impl ViewModelInner {
     fn get_entry(&mut self, db_idx: usize) -> anyhow::Result<ModelEntry> {
         let (path, metadata, thumbnail) = {
             let db = self.db.lock().map_err(|_| anyhow!("Failed to lock DB"))?;
-            db.get_path_metadata_and_thumbnail(db_idx)?
+            db.get_path_metadata_and_thumbnail(db_idx as i64)?
         };
 
         let decoder = JpegDecoder::new(Cursor::new(thumbnail))?;
@@ -228,7 +228,7 @@ impl ViewModelInner {
                 MediaType::Image(_) => None,
                 MediaType::Video(_) => Some(metadata),
             })
-            .map(|duration_ms| util::hh_mm_ss(duration_ms).into());
+            .map(|duration_ms| util::hh_mm_ss(duration_ms as u64).into());
 
         Ok(ModelEntry {
             image,

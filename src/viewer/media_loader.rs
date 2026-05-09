@@ -56,7 +56,7 @@ impl MediaLoader {
             return Err(anyhow::anyhow!("Loading is already in progress"));
         }
 
-        let (path, metadata_raw) = self.db().get_path_and_metadata(idx)?;
+        let (path, metadata_raw) = self.db().get_path_and_metadata(idx as i64)?;
         let app = weak_app
             .upgrade()
             .ok_or_else(|| anyhow::anyhow!("Failed to upgrade weak app"))?;
@@ -96,7 +96,7 @@ pub enum MediaInner {
 }
 
 impl MediaLoader {
-    fn load_inner(&self, path: &str, metadata_raw: u64) -> anyhow::Result<MediaInner> {
+    fn load_inner(&self, path: &str, metadata_raw: i64) -> anyhow::Result<MediaInner> {
         let path = Path::new(path);
         let media_type = MediaType::from_path(path).ok_or(anyhow::anyhow!("Invalid media type"))?;
 

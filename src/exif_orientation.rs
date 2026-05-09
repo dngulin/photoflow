@@ -1,4 +1,4 @@
-use image::{imageops, DynamicImage};
+use image::{DynamicImage, imageops};
 
 #[derive(Clone, Copy)]
 pub enum ExifOrientation {
@@ -18,10 +18,10 @@ impl Default for ExifOrientation {
     }
 }
 
-impl TryFrom<u64> for ExifOrientation {
+impl TryFrom<i64> for ExifOrientation {
     type Error = ();
 
-    fn try_from(value: u64) -> Result<Self, Self::Error> {
+    fn try_from(value: i64) -> Result<Self, Self::Error> {
         match value {
             1 => Ok(Self::Unchanged),
             2 => Ok(Self::MirroredHorizontally),
@@ -36,7 +36,7 @@ impl TryFrom<u64> for ExifOrientation {
     }
 }
 
-impl From<ExifOrientation> for u64 {
+impl From<ExifOrientation> for i64 {
     fn from(value: ExifOrientation) -> Self {
         match value {
             ExifOrientation::Unchanged => 1,
