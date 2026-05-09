@@ -21,15 +21,15 @@ gstreamer-gl = "0.25"
 image = "0.25"
 i-slint-backend-winit = "=1.13.1"
 libheif-rs = { version = "2.2", default-features = false, features = ["v1_17"] }
-nom-exif = "3"
+nom-exif = "3.0"
 rayon = "1.10"
 rusqlite = "0.39"
 serde = "1.0"
 serde_derive = "1.0"
 slint = { version = "=1.13.1", default-features = false, features = ["renderer-femtovg", "compat-1-2"] }
-toml = "0.9"
+toml = "1.0"
 walkdir = "2.5"
-xdg = "3"
+xdg = "3.0"
 gstreamer-gl-egl = { version = "0.25", optional = true }
 glutin_egl_sys = { version = "0.7", optional = true }
 gstreamer-gl-x11 = { version = "0.25", optional = true }
