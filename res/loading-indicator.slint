@@ -10,7 +10,7 @@ export component LoadingIndicator {
         x: parent.width - self.width;
         y: parent.height - self.height;
         source: @image-url("img/spinner.svg");
-        rotation-angle: 360deg * mod(animation-tick(), 2s) / 2s;
+        transform-rotation: 360deg * mod(animation-tick(), 2s) / 2s;
 
         property <float> traget-opacity: root.enabled ? 1 : 0;
         changed traget-opacity => {
