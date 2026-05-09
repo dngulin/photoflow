@@ -2,7 +2,9 @@ use super::MediaType;
 use crate::exif_orientation::ExifOrientation;
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset, Utc};
-use nom_exif::{Exif, ExifIter, ExifTag, MediaParser, MediaSource, TrackInfo, TrackInfoTag};
+use nom_exif::{
+    Exif, ExifIter, ExifTag, MediaKind, MediaParser, MediaSource, TrackInfo, TrackInfoTag,
+};
 use std::fs;
 use std::path::Path;
 
@@ -24,16 +26,17 @@ impl MediaMetadata {
         mt: &MediaType,
         mp: &mut MediaParser,
     ) -> anyhow::Result<MediaMetadata> {
-        let ms = MediaSource::file_path(&path)?;
+        let ms = MediaSource::open(&path)?;
 
         match mt {
-            MediaType::Image(_) if ms.has_exif() => {
-                let iter: ExifIter = mp.parse(ms)?;
+            MediaType::Image(_) if ms.kind() == MediaKind::Image => {
+                let iter: ExifIter = mp.parse_exif(ms)?;
                 let exif: Exif = iter.into();
                 return Ok(MediaMetadata::Image {
                     datetime: exif
                         .get(ExifTag::CreateDate)
-                        .and_then(|e| e.as_time())
+                        .and_then(|e| e.as_datetime())
+                        .and_then(|dt| dt.aware())
                         .or_else(|| fs_datetime(&path))
                         .unwrap_or_default(),
                     orientation: exif
@@ -44,12 +47,13 @@ impl MediaMetadata {
                 });
             }
 
-            MediaType::Video(_) if ms.has_track() => {
-                let info: TrackInfo = mp.parse(ms)?;
+            MediaType::Video(_) if ms.kind() == MediaKind::Track => {
+                let info: TrackInfo = mp.parse_track(ms)?;
                 return Ok(MediaMetadata::Video {
                     datetime: info
                         .get(TrackInfoTag::CreateDate)
-                        .and_then(|e| e.as_time())
+                        .and_then(|e| e.as_datetime())
+                        .and_then(|dt| dt.aware())
                         .or_else(|| fs_datetime(&path))
                         .unwrap_or_default(),
                     duration_ms: info
