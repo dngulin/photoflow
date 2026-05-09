@@ -14,10 +14,10 @@ chrono = "0.4"
 log = "0.4"
 env_logger = "0.11"
 gilrs = "0.11"
-gstreamer = "0.24"
-gstreamer-app = "0.24"
-gstreamer-video = "0.24"
-gstreamer-gl = "0.24"
+gstreamer = "0.25"
+gstreamer-app = "0.25"
+gstreamer-video = "0.25"
+gstreamer-gl = "0.25"
 image = "0.25"
 i-slint-backend-winit = "=1.13.1"
 libheif-rs = { version = "2.2", default-features = false, features = ["v1_17"] }
@@ -30,9 +30,9 @@ slint = { version = "=1.13.1", default-features = false, features = ["renderer-f
 toml = "0.9"
 walkdir = "2.5"
 xdg = "3"
-gstreamer-gl-egl = { version = "0.24", optional = true }
+gstreamer-gl-egl = { version = "0.25", optional = true }
 glutin_egl_sys = { version = "0.7", optional = true }
-gstreamer-gl-x11 = { version = "0.24", optional = true }
+gstreamer-gl-x11 = { version = "0.25", optional = true }
 glutin_glx_sys = { version = "0.6", optional = true }
 
 
